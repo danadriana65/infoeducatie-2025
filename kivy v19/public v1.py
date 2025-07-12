@@ -75,7 +75,7 @@ class VideoScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation="vertical")
-        self.default_video_path = "videos/WhatsApp Video 2025-03-31 at 12.10.50_af799974.mp4"
+        self.default_video_path = "kivy v19/videos/WhatsApp Video 2025-03-31 at 12.10.50_af799974.mp4"
         self.add_widget(self.layout)
 
         if not os.path.exists(self.default_video_path):
@@ -123,7 +123,7 @@ class LoginScreen(Screen):
         self.layout = FloatLayout()
         self.add_widget(self.layout)
         # 🎬 Video pe fundal
-        self.video_path = r"videos\default_cosmic.mp4"
+        self.video_path = r"kivy v19/videos\default_cosmic.mp4"
         if os.path.exists(self.video_path):
             self.video_player = VideoPlayer(source=self.video_path, play=True, options={"eos": "loop"})
             self.layout.add_widget(self.video_player)
@@ -250,7 +250,7 @@ class MainScreen(Screen):
             self.bg_rect = Rectangle(size=layout.size, pos=layout.pos)
 
         layout.bind(size=self.update_bg, pos=self.update_bg)
-        video_path = r"videos/default_cosmic.mp4"
+        video_path = r"kivy v19/videos/default_cosmic.mp4"
         if os.path.exists(video_path):
             self.video = Video(source=video_path, play=True, allow_stretch=True, options={"eos": "loop"},
                                size_hint=(1, 1), pos_hint={"x": 0, "y": 0})
@@ -259,9 +259,9 @@ class MainScreen(Screen):
         LabelBase.register(name="Orbitron", fn_regular="fonts/Orbitron-Regular.ttf")
         layout.add_widget(Label(text="Ce limbaj de programare te intereseaza?", font_size=30, size_hint=(None, None),font_name="Orbitron", pos_hint={"x": 0.5, "y": 0}))
         languages = [
-            ("C++", "images/ISO_C++_Logo.svg(1).png"), 
-            ("Python", "images/Python.svg(1).png"),
-            ("JavaScript", "images/1698604163003(1).png")
+            ("C++", "kivy v19/images/ISO_C++_Logo.svg(1).png"), 
+            ("Python", "kivy v19/images/Python.svg(1).png"),
+            ("JavaScript", "kivy v19/images/1698604163003(1).png")
         ]
         x_positions = [0.15, 0.4, 0.65]
 
@@ -483,7 +483,7 @@ class NavigateScreen(Screen):
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
 
         app = App.get_running_app()
-        video_path = r"videos/default_cosmic.mp4"
+        video_path = r"kivy v19/videos/default_cosmic.mp4"
         if os.path.exists(video_path):
             self.video_player = Video( 
         source=video_path,
@@ -522,10 +522,10 @@ class NavigateScreen(Screen):
                 theory_btn.bind(on_press=lambda instance: webbrowser.open(link_map[self.option]))
                 self.layout.add_widget(theory_btn)
             planet_images = {
-            "Uranus": "images/Uranus(1).png",
-            "Venus": "images/Venus.png",
-            "Saturn": "images/Saturn.png",
-            "Mercur": "images/Mercur 2.png"
+            "Uranus": "kivy v19/images/Uranus(1).png",
+            "Venus": "kivy v19/images/Venus.png",
+            "Saturn": "kivy v19/images/Saturn.png",
+            "Mercur": "kivy 19/images/Mercur 2.png"
             }
             planet_buttons = BoxLayout(size_hint=(1,0.3), width=500, height=120, pos_hint={"center_x": 0.75, "center_y": 0.35}, spacing=200
 )
@@ -1051,10 +1051,10 @@ class QuestionScreen(Screen):
             button.background_color = (0, 1, 0, 1)
             user_progress.setdefault(option, {}).setdefault(planet, 0)
             user_progress[option][planet] += 1
-            video_path = r"videos/congrats .mp4"
+            video_path = r"kivy v19/videos/congrats .mp4"
         else:
             button.background_color = (1, 0, 0, 1)
-            video_path = r"videos/try again.mp4"
+            video_path = r"kivy v19/videos/try again.mp4"
 
         save_progress()
 
