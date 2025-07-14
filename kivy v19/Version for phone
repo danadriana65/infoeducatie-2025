@@ -122,28 +122,28 @@ class VideoScreen(Screen):
         except:
             pass  # Uneori durata nu e disponibilă imediat
 def send_confirmation_email(recipient_email, username):
-          sender_email = "dan.adriana@cnmv.ro"
-          sender_password = "igz86737"
+    sender_email = "cosmiccode2025@gmail.com"
+    sender_password = os.getenv("EMAIL_PASSWORD")  # Get password from variable named 'EMAIL_PASSWORD'
 
-          subject = "Cosmiccode Login Confirmation"
-          body = f"Hi {username},\n\nYou have successfully logged into Cosmiccode.\nIf this wasn't you, please reset your password."
+    subject = "Cosmiccode Login Confirmation"
+    body = f"Hi {username},\n\nYou have successfully logged into Cosmiccode.\nIf this wasn't you, please reset your password."
 
-          msg = MIMEMultipart()
-          msg["From"] = sender_email
-          msg["To"] = recipient_email
-          msg["Subject"] = subject
-          msg.attach(MIMEText(body, "plain"))
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = recipient_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
 
-          try:
-              server = smtplib.SMTP("smtp.gmail.com", 587)  # Replace with your email provider's SMTP server
-              server.starttls()
-              server.login(sender_email, sender_password)
-              server.send_message(msg)
-              server.quit()
-              return True
-          except Exception as e:
-            print(f"Error sending email: {e}")
-            return False
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 class LoginScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1478,38 +1478,55 @@ class CodeChallengeScreen(Screen):
             self.load_question()
         else:
             self.result_label.text = "🎉 Ai terminat toate întrebările!"
+from kivy.uix.screenmanager import Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.anchorlayout import AnchorLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
+from kivy.clock import Clock
+from kivy.graphics import Color, Rectangle
+import requests
+
 class ChatScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.displayed_messages = []
 
-        # 🔧 Layout principal
+        # 🔧 Main layout
         self.layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
         self.add_widget(self.layout)
 
-        # 🌠 Scroll pentru mesaje
+        # 🌠 Message scroll area
         self.message_scroll = ScrollView(size_hint=(1, 0.8))
         self.message_container = BoxLayout(orientation="vertical", size_hint_y=None)
         self.message_container.bind(minimum_height=self.message_container.setter('height'))
         self.message_scroll.add_widget(self.message_container)
         self.layout.add_widget(self.message_scroll)
-        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1),  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+
+        # 🔙 Back button
+        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1),
+                          background_normal="", background_color=(0.6, 0.2, 0.8, 1),
+                          color=(1, 1, 1, 1))
         back_btn.bind(on_press=self.go_back)
         self.layout.add_widget(back_btn)
-        # 📝 Input + buton
+
+        # 📝 Input row
         input_row = BoxLayout(size_hint=(1, 0.1), spacing=10)
         self.input = TextInput(hint_text="Scrie un mesaj...", multiline=False)
-        send_btn = Button(text="Trimite", size_hint=(None, 1), width=100, background_color=(0.6, 0.2, 0.8, 1))
+        send_btn = Button(text="Trimite", size_hint=(None, 1), width=100,
+                          background_color=(0.6, 0.2, 0.8, 1))
         send_btn.bind(on_press=self.send_message)
         input_row.add_widget(self.input)
         input_row.add_widget(send_btn)
         self.layout.add_widget(input_row)
 
-        # 🌐 Nume utilizator din sesiune
-        session = load_active_user()  # funcție definită de tine
+        # 🌐 Username from session
+        session = load_active_user()  # this should be defined elsewhere
         self.username = session.get("username", "(anonim)")
 
-        # 🔄 Actualizare automată
+        # 🔄 Message updates
         Clock.schedule_interval(self.update_messages, 2)
 
     def send_message(self, instance):
@@ -1529,47 +1546,62 @@ class ChatScreen(Screen):
             for msg in messages:
                 if msg not in self.displayed_messages:
                     is_self = msg['user'] == self.username
-                    bubble = self.create_message_bubble(msg['text'], is_self)
+                    bubble = self.create_message_bubble(msg['text'], is_self, msg['user'])
                     self.message_container.add_widget(bubble)
                     self.displayed_messages.append(msg)
         except Exception as e:
             print(f"Eroare la încărcare: {e}")
+
     def go_back(self, instance):
         self.manager.current = "main_screen"
-    def create_message_bubble(self, text, is_self):
-    
+
+    def create_message_bubble(self, text, is_self, username):
         wrapper = AnchorLayout(
-        anchor_x='right' if is_self else 'left',
-        size_hint_y=None,
-        height=60
-    )
+            anchor_x='right' if is_self else 'left',
+            size_hint_y=None,
+            height=80
+        )
 
         bubble = BoxLayout(
-        padding=10,
-        size_hint=(None, None),
-        size=(min(len(text)*10 + 40, 300), 50)
-    )
+            orientation='vertical',
+            padding=10,
+            size_hint=(None, None),
+            size=(min(len(text) * 10 + 40, 300), 70)
+        )
 
         with bubble.canvas.before:
-           Color(*(0.6, 0.2, 0.8, 1) if is_self else (0.2, 0.2, 0.4, 1))
-           rect = Rectangle(size=bubble.size, pos=bubble.pos)
+            Color(*(0.6, 0.2, 0.8, 1) if is_self else (0.2, 0.2, 0.4, 1))
+            rect = Rectangle(size=bubble.size, pos=bubble.pos)
+            bubble.bind(size=lambda w, v: setattr(rect, 'size', v))
+            bubble.bind(pos=lambda w, v: setattr(rect, 'pos', v))
 
-           bubble.bind(size=lambda w, v: setattr(rect, 'size', v))
-           bubble.bind(pos=lambda w, v: setattr(rect, 'pos', v))
+        name_label = Label(
+            text=username,
+            size_hint=(1, None),
+            height=20,
+            halign='left',
+            valign='middle',
+            font_size='12sp',
+            color=(1, 1, 1, 0.6)
+        )
+        name_label.bind(texture_size=name_label.setter('size'))
+        name_label.text_size = (bubble.size[0], 20)
 
-        label = Label(
-        text=text,
-        size_hint=(1, 1),
-        halign='left',
-        valign='middle',
-        color=(1,1,1,1)
-    )
-        label.bind(texture_size=label.setter('size'))
-        label.text_size = bubble.size
+        message_label = Label(
+            text=text,
+            size_hint=(1, 1),
+            halign='left',
+            valign='middle',
+            color=(1, 1, 1, 1)
+        )
+        message_label.bind(texture_size=message_label.setter('size'))
+        message_label.text_size = bubble.size
 
-        bubble.add_widget(label)
+        bubble.add_widget(name_label)
+        bubble.add_widget(message_label)
         wrapper.add_widget(bubble)
         return wrapper
+
 
 class CosmicApp(App):
     def __init__(self, **kwargs):
