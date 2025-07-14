@@ -20,6 +20,7 @@ from kivy.graphics import Color, Rectangle
 import os
 import sys
 import json
+from kivy.uix.anchorlayout import AnchorLayout
 import requests
 from kivy.uix.image import Image as KivyImage
 from kivy.graphics.texture import Texture
@@ -1509,7 +1510,7 @@ class ChatScreen(Screen):
         self.username = session.get("username", "(anonim)")
 
         # 🔄 Actualizare automată
-        Clock.schedule_interval(self.update_messages, 20)
+        Clock.schedule_interval(self.update_messages, 2)
 
     def send_message(self, instance):
         text = self.input.text.strip()
@@ -1536,32 +1537,40 @@ class ChatScreen(Screen):
     def go_back(self, instance):
         self.manager.current = "main_screen"
     def create_message_bubble(self, text, is_self):
+    
+        wrapper = AnchorLayout(
+        anchor_x='right' if is_self else 'left',
+        size_hint_y=None,
+        height=60
+    )
+
         bubble = BoxLayout(
-            size_hint_y=None,
-            height=50,
-            padding=10,
-            pos_hint={'right': 1} if is_self else {'x': 0}
-        )
-
-        label = Label(
-            text=text,
-            size_hint_x=None,
-            width=min(len(text)*10, 300),
-            color=(1,1,1,1),
-            halign='left',
-            valign='middle'
-        )
-        label.text_size = (label.width, None)
-
-        bubble.add_widget(label)
+        padding=10,
+        size_hint=(None, None),
+        size=(min(len(text)*10 + 40, 300), 50)
+    )
 
         with bubble.canvas.before:
-            Color(*(0.6, 0.2, 0.8, 1) if is_self else (0.2, 0.2, 0.4, 1))
-            rect = Rectangle(size=bubble.size, pos=bubble.pos)
+           Color(*(0.6, 0.2, 0.8, 1) if is_self else (0.2, 0.2, 0.4, 1))
+           rect = Rectangle(size=bubble.size, pos=bubble.pos)
 
-        bubble.bind(size=lambda w, v: setattr(rect, 'size', v))
-        bubble.bind(pos=lambda w, v: setattr(rect, 'pos', v))
-        return bubble
+           bubble.bind(size=lambda w, v: setattr(rect, 'size', v))
+           bubble.bind(pos=lambda w, v: setattr(rect, 'pos', v))
+
+        label = Label(
+        text=text,
+        size_hint=(1, 1),
+        halign='left',
+        valign='middle',
+        color=(1,1,1,1)
+    )
+        label.bind(texture_size=label.setter('size'))
+        label.text_size = bubble.size
+
+        bubble.add_widget(label)
+        wrapper.add_widget(bubble)
+        return wrapper
+
 class CosmicApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

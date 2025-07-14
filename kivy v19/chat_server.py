@@ -13,6 +13,7 @@ def get_messages():
 @app.route("/send", methods=["POST"])
 def send_message():
     data = request.json
+    print("Mesaj primit:", data)
     messages.append({"user": data["user"], "text": data["text"]})
     return jsonify({"status": "received"})
 
