@@ -669,11 +669,26 @@ class OptionsScreen(Screen):
         notes_button = Button(text = "Notite", size_hint = (None,None), size = (200,50),font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         notes_button.bind(on_press = self.open_notes_popup)
         self.main_layout.add_widget(notes_button)
-        undo = Button(text="Undo", size_hint=(None, None), size=(200, 50),font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
-        undo.bind(on_press=lambda x: setattr(self.manager, "current", "navigate_screen_" + self.selected_option))
+        undo = Button(
+        text="Undo",
+    size_hint=(None, None),
+    size=(200, 50),
+    font_name="Orbitron",
+    background_normal="",
+    background_color=(0.6, 0.2, 0.8, 1),
+    color=(1, 1, 1, 1)
+)
+        undo.bind(on_press=self.go_back_to_navigate)
         self.main_layout.add_widget(undo)
 
         self.add_widget(self.main_layout)
+    def go_back_to_navigate(self, instance):
+      screen_name = f"navigate_screen_{self.selected_option}"
+      if self.manager.has_screen(screen_name):
+        self.manager.current = screen_name
+      else:
+        print(f"Ecranul {screen_name} nu există.")
+
     def update_bg(self, *args):
                  self.bg_rect.size = self.children[0].size
                  self.bg_rect.pos = self.children[0].pos   
@@ -1450,69 +1465,74 @@ class CodeChallengeScreen(Screen):
         self.result_label.text = ""
 
     def run_code(self, instance):
-        q = self.questions[self.current_index]
-        user_code = self.code_input.text
-        lang = self.selected_option
-        expected = str(q.get("expected_output", "")).strip()
+       q = self.questions[self.current_index]
+       user_code = self.code_input.text
+       lang = self.selected_option
+       expected = str(q.get("expected_output", "")).strip()
 
-        self.result_label.text = "⌛ Rulez codul..."
+       self.result_label.text = "⌛ Rulez codul..."
+       temp_path = None
+       result = ""
 
-        try:
-            if lang == "Python":
-            # 🐍 Run Python code using exec()
-               old_stdout = sys.stdout
-               redirected_output = sys.stdout = io.StringIO()
+       try:
+           if lang == "Python":
+              old_stdout = sys.stdout
+              redirected_output = sys.stdout = io.StringIO()
 
-               local_env = {}
-               exec(user_code, {}, local_env)
+              local_env = {}
+              exec(user_code, {}, local_env)
 
-               if q["function"] in local_env:
+              if q["function"] in local_env:
                 result = str(local_env[q["function"]]()).strip()
-               else:
-                self.result_label.text = f"❌ Nu ai definit funcția '{q['function']}'"
+              else:
+                self.result_label.text = f"❌ Funcția '{q['function']}' nu este definită."
+                sys.stdout = old_stdout
                 return
 
-                sys.stdout = old_stdout
+              sys.stdout = old_stdout
 
-            else:
-            # 🌐 Run C++ or JavaScript using subprocess
+           else:
                ext = ".cpp" if lang == "C++" else ".js"
                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
                temp_file.write(user_code.encode("utf-8"))
-               temp_file.close()  # close file to unlock
-
+               temp_file.close()
                temp_path = temp_file.name
 
                if lang == "C++":
-                exe_path = temp_path + ".exe"
-                compile_result = subprocess.run(["g++", temp_path, "-o", exe_path],
-                                                capture_output=True, text=True)
-                if compile_result.returncode != 0:
+                  exe_path = temp_path + ".exe"
+                  compile_result = subprocess.run(
+                    ["g++", temp_path, "-o", exe_path],
+                    capture_output=True, text=True
+                )
+                  if compile_result.returncode != 0:
                     self.result_label.text = f"❌ Eroare la compilare:\n{compile_result.stderr}"
                     os.remove(temp_path)
                     return
-                run_result = subprocess.run([exe_path], capture_output=True, text=True)
-                result = run_result.stdout.strip()
-                os.remove(exe_path)
+
+                  run_result = subprocess.run([exe_path], capture_output=True, text=True)
+                  result = run_result.stdout.strip()
+                  os.remove(exe_path)
 
                elif lang == "JavaScript":
                 run_result = subprocess.run(["node", temp_path], capture_output=True, text=True)
                 result = run_result.stdout.strip()
 
+           if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
-        # ✅ Verificare + salvare progres
-            if result == expected:
-              self.result_label.text = "✅ Corect!"
-              global user_progress
-              user_progress.setdefault(lang, {}).setdefault("Mercur", 0)
-              user_progress[lang]["Mercur"] += 1
-              save_progress()
-            else:
-                self.result_label.text = f"❌ Ai returnat '{result}', dar se aștepta '{expected}'."
+           if result == expected:
+            self.result_label.text = "✅ Corect!"
+            global user_progress
+            user_progress.setdefault(lang, {}).setdefault("Mercur", 0)
+            user_progress[lang]["Mercur"] += 1
+            save_progress()
+           else:
+            self.result_label.text = f"❌ Ai returnat '{result}', dar se aștepta '{expected}'."
 
-        except Exception as e:
-              self.result_label.text = f"⚠️ Eroare: {e}"
+       except Exception as e:
+          if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+            self.result_label.text = f"⚠️ Eroare: {e}"
     def next_question(self, instance):
         if self.current_index < len(self.questions) - 1:
             self.current_index += 1
@@ -1536,14 +1556,12 @@ class ChatScreen(Screen):
         self.message_scroll.add_widget(self.message_container)
         self.layout.add_widget(self.message_scroll)
 
-        # 🔙 Back button
         back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1),
                           background_normal="", background_color=(0.6, 0.2, 0.8, 1),
                           color=(1, 1, 1, 1))
         back_btn.bind(on_press=self.go_back)
         self.layout.add_widget(back_btn)
 
-        # 📝 Input row
         input_row = BoxLayout(size_hint=(1, 0.1), spacing=10)
         self.input = TextInput(hint_text="Scrie un mesaj...", multiline=False)
         send_btn = Button(text="Trimite", size_hint=(None, 1), width=100,
@@ -1643,7 +1661,7 @@ class MyApp(App):
         self.session = UserSession()
         self.session.load()
         sm = ScreenManager(transition=FadeTransition())
-        self.user_input = ""          # va fi setat din LoginScreen
+        self.user_input = ""          
         self.user_mail = ""
         self.user_data = {}   
         self.cale_imagine_selectata = "" 
@@ -1653,6 +1671,14 @@ class MyApp(App):
         sm.add_widget(OptionsScreen(planet_name="Uranus", selected_option="Python", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Venus", selected_option="Python", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Saturn", selected_option="Python", name="options_screen"))
+        for option in ["Python", "C++", "JavaScript"]:
+          sm.add_widget(NavigateScreen(
+          option=option,
+          user_data=self.user_data,
+          user_input=self.user_input,
+          user_mail=self.user_mail,
+          name=f"navigate_screen_{option}"
+    ))
         sm.add_widget(ChatScreen(name="chat_screen"))
 
   # or whatever your class is

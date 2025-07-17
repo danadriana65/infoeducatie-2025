@@ -1,6 +1,10 @@
 import kivy
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from session import UserSession
 from kivy.app import App
+from kivy.uix.image import Image as KivyImage
 from kivy.uix.label import Label
 from kivy.core.text import LabelBase
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
@@ -17,6 +21,11 @@ from kivy.graphics import Color, Rectangle
 import os
 import sys
 import json
+import io
+import subprocess
+import tempfile
+from kivy.uix.anchorlayout import AnchorLayout
+import requests
 from kivy.uix.image import Image as KivyImage
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
@@ -118,7 +127,29 @@ class ImageScreen(Screen):
 
     def go_to_login(self, dt):
         self.manager.current = "login_screen"
+def send_confirmation_email(recipient_email, username):
+    sender_email = "cosmiccode2025@gmail.com"
+    sender_password = os.getenv("EMAIL_PASSWORD")  # Get password from variable named 'EMAIL_PASSWORD'
 
+    subject = "Cosmiccode Login Confirmation"
+    body = f"Hi {username},\n\nYou have successfully logged into Cosmiccode.\nIf this wasn't you, please reset your password."
+
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = recipient_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 class LoginScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -129,7 +160,6 @@ class LoginScreen(Screen):
         if os.path.exists(self.image_path):
            self.image_widget = Image(source=self.image_path, allow_stretch=True, keep_ratio=True)
            self.layout.add_widget(self.image_widget)
-
         with self.layout.canvas.before:
             Color(0.1, 0.1, 0.3, 1) 
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
@@ -177,25 +207,26 @@ class LoginScreen(Screen):
         else:
             result = store_user_info(entered_username, entered_password, entered_email)
             self.message_label.text = result
-
-    def login(self, instance):
-        entered_username = self.username.text.strip()
-        entered_password = self.password.text.strip()
-
-        if verify_user(entered_username, entered_password):
-            # ✅ Salvăm utilizatorul activ
-            with open("active_user.txt", "w") as f:
-                f.write(entered_username)
-
-            # 👉 Transmitem datele către grid_screen dacă există
-            if self.manager.has_screen("grid_screen"):
-                self.manager.get_screen("grid_screen").set_user_details(entered_username)
-
-            # 🛰️ Tranziție către ecranul principal
-            self.manager.current = "main"
-        else:
-            self.message_label.text = "Invalid credentials!"
     
+    def login(self, instance):
+       entered_username = self.username.text.strip()
+       entered_password = self.password.text.strip()
+       
+       if verify_user(entered_username, entered_password):
+          with open("active_user.txt", "w") as f:
+            f.write(entered_username)
+          app = App.get_running_app()
+          app.session.username = entered_username
+          if self.manager.has_screen("grid_screen"):
+            self.manager.get_screen("grid_screen").set_user_details(entered_username)
+
+        # ✉️ Send confirmation email
+          user_email = self.email.text.strip()  # Make sure this corresponds with stored data
+          send_confirmation_email(user_email, entered_username)
+
+          self.manager.current = "main"
+       else:
+        self.message_label.text = "Invalid credentials!"
 class GridScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -293,7 +324,9 @@ class MainScreen(Screen):
         ranking_button = Button(text="Clasament", size_hint=(0.2, 0.1),font_name="Orbitron", pos_hint={"x": 0.7, "y": 0.85}, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         ranking_button.bind(on_press=self.go_to_ranking)
         self.layout.add_widget(ranking_button)
-
+        chat_btn = Button(text="💬 Chat", size_hint=(0.2, 0.1),font_name="Orbitron", pos_hint={"center_x": 0.5, "y": 0.1}, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        chat_btn.bind(on_press=lambda x: setattr(self.manager, "current", "chat_screen"))
+        self.layout.add_widget(chat_btn)
         # 🔙 Undo
         undo_button = Button(
             text="Undo",
@@ -375,47 +408,66 @@ class SettingsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation="vertical", padding=20, spacing=10)
+        self.session_data = {}
+        
         with self.layout.canvas.before:
-            Color(0.1, 0.1, 0.3, 1) 
+            Color(0.1, 0.1, 0.3, 1)
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
 
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
         self.add_widget(self.layout)
 
-        session = load_active_user()
-        
         self.profile_label = Label(text="No profile picture selected")
+        self.profile_img = None  # placeholder for image widget
+
+    def on_pre_enter(self, *args):
+        self.layout.clear_widgets()
+
+        self.session_data = load_active_user()
+        username = self.session_data.get("username", "(necunoscut)")
+        email = self.session_data.get("email", "(necunoscut)")
+        profile_path = self.session_data.get("profile_picture", "")
+
         self.layout.add_widget(Label(text="Settings", font_size=24))
-        self.layout.add_widget(Label(text=f"Username: {session.get('username', '(necunoscut)')}", font_size=18))
-        self.layout.add_widget(Label(text=f"Email: {session.get('email', '(necunoscut)')}", font_size=18))
+        self.layout.add_widget(Label(text=f"Username: {username}", font_size=18))
+        self.layout.add_widget(Label(text=f"Email: {email}", font_size=18))
         self.layout.add_widget(self.profile_label)
 
-        profile_path = session.get("profile_picture", "")
         if profile_path and os.path.exists(profile_path):
             self.update_profile_picture(profile_path)
+        else:
+            self.profile_label.text = "(No profile picture selected)"
 
-        choose_button = Button(text="Alege poza de profil", size_hint=(None, None), width=200, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        choose_button = Button(text="Choose Profile Picture", size_hint=(None, None),
+                               width=200, height=50, background_normal="",
+                               background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         choose_button.bind(on_press=self.choose_profile_picture)
-        self.layout.add_widget(choose_button)
 
-        remove_button = Button(text="Șterge poza de profil", size_hint=(None, None), width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        remove_button = Button(text="Remove Profile Picture", size_hint=(None, None),
+                               width=200, height=50, background_normal="",
+                               background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         remove_button.bind(on_press=self.remove_profile_picture)
-        self.layout.add_widget(remove_button)
-        
-        undo_button = Button(text="Undo", size_hint=(None, None), width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+
+        undo_button = Button(text="Undo", size_hint=(None, None), width=200, height=50,
+                             background_normal="", background_color=(0.6, 0.2, 0.8, 1),
+                             color=(1, 1, 1, 1))
         undo_button.bind(on_press=lambda instance: setattr(self.manager, "current", "main_screen"))
+
+        self.layout.add_widget(choose_button)
+        self.layout.add_widget(remove_button)
         self.layout.add_widget(undo_button)
-        self.session_data = session  # păstrezi datele în obiect pentru salvări viitoare
+
     def update_bg(self, *args):
         self.bg_rect.size = self.children[0].size
         self.bg_rect.pos = self.children[0].pos
+
     def choose_profile_picture(self, instance):
         content = BoxLayout(orientation="vertical", spacing=10, padding=10)
         chooser = FileChooserListView(filters=["*.png", "*.jpg", "*.jpeg"], size_hint=(1, 0.9))
-        confirm_btn = Button(text="Folosește această imagine", size_hint=(1, 0.1))
+        confirm_btn = Button(text="Use this image", size_hint=(1, 0.1))
         content.add_widget(chooser)
         content.add_widget(confirm_btn)
-        popup = Popup(title="Alege poza de profil", content=content, size_hint=(0.9, 0.9))
+        popup = Popup(title="Choose Profile Picture", content=content, size_hint=(0.9, 0.9))
         popup.open()
 
         def set_image(_):
@@ -427,7 +479,6 @@ class SettingsScreen(Screen):
                 if username in all_users:
                     all_users[username]["profile_picture"] = selected
                     with open("user_credentials.json", "w") as f:
-                        import json
                         json.dump(all_users, f, indent=4)
                 self.update_profile_picture(selected)
                 popup.dismiss()
@@ -435,7 +486,7 @@ class SettingsScreen(Screen):
         confirm_btn.bind(on_press=set_image)
 
     def update_profile_picture(self, image_path):
-        if hasattr(self, "profile_img"):
+        if self.profile_img:
             self.layout.remove_widget(self.profile_img)
 
         try:
@@ -448,13 +499,15 @@ class SettingsScreen(Screen):
             cropped.putalpha(mask)
             cropped = cropped.resize((100, 100))
             img_data = cropped.tobytes()
+
             texture = Texture.create(size=cropped.size, colorfmt='rgba')
             texture.blit_buffer(img_data, colorfmt='rgba', bufferfmt='ubyte')
-            self.profile_img = Image(texture=texture, size_hint=(None, None), size=(100, 100))
+
+            self.profile_img = KivyImage(texture=texture, size_hint=(None, None), size=(100, 100))
             self.layout.add_widget(self.profile_img)
             self.profile_label.text = ""
         except Exception as e:
-            self.profile_label.text = f"Eroare: {e}"
+            self.profile_label.text = f"Error: {e}"
 
     def remove_profile_picture(self, instance):
         self.session_data["profile_picture"] = ""
@@ -463,12 +516,12 @@ class SettingsScreen(Screen):
         if username in all_users:
             all_users[username]["profile_picture"] = ""
             with open("user_credentials.json", "w") as f:
-                import json
                 json.dump(all_users, f, indent=4)
 
-        if hasattr(self, "profile_img"):
+        if self.profile_img:
             self.layout.remove_widget(self.profile_img)
-        self.profile_label.text = "No profile picture selected"
+            self.profile_img = None
+        self.profile_label.text = "(No profile picture selected)"
 class NavigateScreen(Screen):
     def __init__(self,option, user_data, user_input, user_mail,**kwargs):
         super().__init__(**kwargs)
@@ -482,10 +535,10 @@ class NavigateScreen(Screen):
             Color(0.1, 0.1, 0.3, 1) 
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
 
-            self.layout.bind(size=self.update_bg, pos=self.update_bg)
+        self.layout.bind(size=self.update_bg, pos=self.update_bg)
 
-            app = App.get_running_app()
-            self.image_path = r"kivy v19/videos/default_image v2.png"
+        app = App.get_running_app()
+        self.image_path = r"kivy v19/videos/default_image v2.png"
         if os.path.exists(self.image_path):
             self.image_widget = Image(source=self.image_path, allow_stretch=True, keep_ratio=True)
             self.layout.add_widget(self.image_widget)
@@ -523,7 +576,7 @@ class NavigateScreen(Screen):
             "Saturn": "kivy v19/images/Saturn.png",
             "Mercur": "kivy v19/images/Mercur 2.png"
             }
-            planet_buttons = BoxLayout(size_hint=(1,0.3), width=500, height=120, pos_hint={"center_x": 0.75, "center_y": 0.35}, spacing=200
+            planet_buttons = BoxLayout(size_hint=(1,0.3), width=500, height=120, pos_hint={"center_x": 0.65, "center_y": 0.35}, spacing=200
 )
             for planet_name, image_path in planet_images.items():
                 if os.path.exists(image_path):
@@ -570,6 +623,8 @@ class NavigateScreen(Screen):
         if not self.manager.has_screen(screen_name):
             self.manager.add_widget(OptionsScreen(planet_name, self.option, name=screen_name))
         self.manager.current = screen_name
+
+
 class OptionsScreen(Screen):
     def __init__(self, planet_name, selected_option, **kwargs):
         super().__init__(**kwargs)
@@ -604,11 +659,26 @@ class OptionsScreen(Screen):
         notes_button = Button(text = "Notite", size_hint = (None,None), size = (200,50),font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         notes_button.bind(on_press = self.open_notes_popup)
         self.main_layout.add_widget(notes_button)
-        undo = Button(text="Undo", size_hint=(None, None), size=(200, 50),font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
-        undo.bind(on_press=lambda x: setattr(self.manager, "current", "navigate_screen_" + self.selected_option))
+        undo = Button(
+        text="Undo",
+    size_hint=(None, None),
+    size=(200, 50),
+    font_name="Orbitron",
+    background_normal="",
+    background_color=(0.6, 0.2, 0.8, 1),
+    color=(1, 1, 1, 1)
+)
+        undo.bind(on_press=self.go_back_to_navigate)
         self.main_layout.add_widget(undo)
 
         self.add_widget(self.main_layout)
+    def go_back_to_navigate(self, instance):
+      screen_name = f"navigate_screen_{self.selected_option}"
+      if self.manager.has_screen(screen_name):
+        self.manager.current = screen_name
+      else:
+        print(f"Ecranul {screen_name} nu există.")
+
     def update_bg(self, *args):
                  self.bg_rect.size = self.children[0].size
                  self.bg_rect.pos = self.children[0].pos   
@@ -1054,7 +1124,6 @@ class QuestionScreen(Screen):
         image_screen = Image2Screen(image_path, 'options_screen', self.question_data, name='feedback_image')
         self.manager.add_widget(image_screen)
         self.manager.current = 'feedback_image'
-
 def save_progress():
     global user_progress
 
@@ -1259,93 +1328,80 @@ code_questions = {
         }
     ],
     "C++": [
-        {
-            "prompt": "Simulează în Python: returnează suma a două numere întregi (5 + 10)",
-            "template": "def suma():\n    return ...",
-            "function": "suma",
-            "expected": 15
-        },
-        {
-            "prompt": "Simulează în Python: returnează caracterul 'A'",
-            "template": "def caracter():\n    return ...",
-            "function": "caracter",
-            "expected": 'A'
-        },
-        {
-            "prompt": "Simulează în Python: returnează valoarea booleană true",
-            "template": "def adevarat():\n    return ...",
-            "function": "adevarat",
-            "expected": True
-        },
-        {
-            "prompt": "Simulează în Python: returnează lungimea stringului 'C++'",
-            "template": "def lungime():\n    return ...",
-            "function": "lungime",
-            "expected": 3
-        },
-        {
-            "prompt": "Simulează în Python: returnează lista [10, 20, 30]",
-            "template": "def vector():\n    return ...",
-            "function": "vector",
-            "expected": [10, 20, 30]
-        },
-        {
-            "prompt": "Simulează în Python: returnează 2 la puterea 3",
-            "template": "def putere():\n    return ...",
-            "function": "putere",
-            "expected": 8
-        },
-        {
-            "prompt": "Simulează în Python: returnează diferența 100 - 25",
-            "template": "def diferenta():\n    return ...",
-            "function": "diferenta",
-            "expected": 75
-        }
-    ],
+    {
+        "prompt": "Scrie un program C++ care afișează suma 5 + 10 folosind `std::cout`",
+        "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "15"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează caracterul 'A'",
+        "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "A"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează valoarea `true`",
+        "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "1"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează lungimea șirului \"C++\"",
+        "template": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "3"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează valorile unui vector `[10, 20, 30]`",
+        "template": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "10 20 30"
+    },
+    {
+    "prompt": "Scrie un program C++ care afișează 2 la puterea 3",
+    "template": "#include <iostream>\n#include <cmath>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+    "expected_output": "8"
+    },
+    {
+    "prompt": "Scrie un program C++ care afișează diferența 100 - 25",
+    "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+    "expected_output": "75"
+    }
+],
+
     "JavaScript": [
-        {
-            "prompt": "Scrie o funcție care returnează 'Hello, World!'",
-            "template": "def hello():\n    return ...",
-            "function": "hello",
-            "expected": "Hello, World!"
-        },
-        {
-            "prompt": "Scrie o funcție care returnează lungimea stringului 'JavaScript'",
-            "template": "def lungime():\n    return ...",
-            "function": "lungime",
-            "expected": 10
-        },
-        {
-            "prompt": "Scrie o funcție care returnează lista [1, 2, 3, 4].length",
-            "template": "def lungime_lista():\n    return ...",
-            "function": "lungime_lista",
-            "expected": 4
-        },
-        {
-            "prompt": "Scrie o funcție care returnează True dacă 10 > 5",
-            "template": "def comparatie():\n    return ...",
-            "function": "comparatie",
-            "expected": True
-        },
-        {
-            "prompt": "Scrie o funcție care returnează concatenarea 'JS' + '2025'",
-            "template": "def concat():\n    return ...",
-            "function": "concat",
-            "expected": "JS2025"
-        },
-        {
-            "prompt": "Scrie o funcție care returnează 3 * 3",
-            "template": "def inmultire():\n    return ...",
-            "function": "inmultire",
-            "expected": 9
-        },
-        {
-            "prompt": "Scrie o funcție care returnează valoarea booleană False",
-            "template": "def fals():\n    return ...",
-            "function": "fals",
-            "expected": False
-        }
-    ]
+    {
+        "prompt": "Scrie un program JavaScript care afișează 'Hello, World!' în consolă",
+        "template": "// codul tău aici\nconsole.log();",
+        "expected_output": "Hello, World!"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează lungimea șirului 'JavaScript'",
+        "template": "// codul tău aici\nlet text = 'JavaScript';\nconsole.log();",
+        "expected_output": "10"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează lungimea listei [1, 2, 3, 4]",
+        "template": "// codul tău aici\nlet lista = [1, 2, 3, 4];\nconsole.log();",
+        "expected_output": "4"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează `true` dacă 10 > 5",
+        "template": "// codul tău aici\nconsole.log();",
+        "expected_output": "true"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează concatenarea 'JS' și '2025'",
+        "template": "// codul tău aici\nconsole.log();",
+        "expected_output": "JS2025"
+    },
+    {
+    "prompt": "Scrie un program JavaScript care afișează 3 * 3 în consolă",
+    "template": "// codul tău aici\nconsole.log();",
+    "expected_output": "9"
+   },
+   {
+    "prompt": "Scrie un program JavaScript care afișează valoarea booleană `false`",
+    "template": "// codul tău aici\nconsole.log();",
+    "expected_output": "false"
+   }
+]
 }
 
 
@@ -1396,39 +1452,74 @@ class CodeChallengeScreen(Screen):
         self.result_label.text = ""
 
     def run_code(self, instance):
-        q = self.questions[self.current_index]
-        user_code = self.code_input.text
+       q = self.questions[self.current_index]
+       user_code = self.code_input.text
+       lang = self.selected_option
+       expected = str(q.get("expected_output", "")).strip()
 
-        import sys, io
-        old_stdout = sys.stdout
-        redirected_output = sys.stdout = io.StringIO()
+       self.result_label.text = "⌛ Rulez codul..."
+       temp_path = None
+       result = ""
 
-        try:
-           local_env = {}
-           exec(user_code, {}, local_env)
+       try:
+           if lang == "Python":
+              old_stdout = sys.stdout
+              redirected_output = sys.stdout = io.StringIO()
 
-           if q["function"] in local_env:
-             result = local_env[q["function"]]()
-             if result == q["expected"]:
-                self.result_label.text = "✅ Corect!"
+              local_env = {}
+              exec(user_code, {}, local_env)
 
-                # 🧠 Salvăm progresul pentru Mercur
-                global user_progress
-                user_progress.setdefault(self.selected_option, {}).setdefault("Mercur", 0)
-                user_progress[self.selected_option]["Mercur"] += 1
-                save_progress()
+              if q["function"] in local_env:
+                result = str(local_env[q["function"]]()).strip()
+              else:
+                self.result_label.text = f"❌ Funcția '{q['function']}' nu este definită."
+                sys.stdout = old_stdout
+                return
 
-             else:
-                self.result_label.text = f"❌ Ai returnat {result}, dar se aștepta {q['expected']}."
+              sys.stdout = old_stdout
+
            else:
-                self.result_label.text = f"❌ Nu ai definit funcția '{q['function']}'"
+               ext = ".cpp" if lang == "C++" else ".js"
+               temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+               temp_file.write(user_code.encode("utf-8"))
+               temp_file.close()
+               temp_path = temp_file.name
 
-        except Exception as e:
+               if lang == "C++":
+                  exe_path = temp_path + ".exe"
+                  compile_result = subprocess.run(
+                    ["g++", temp_path, "-o", exe_path],
+                    capture_output=True, text=True
+                )
+                  if compile_result.returncode != 0:
+                    self.result_label.text = f"❌ Eroare la compilare:\n{compile_result.stderr}"
+                    os.remove(temp_path)
+                    return
+
+                  run_result = subprocess.run([exe_path], capture_output=True, text=True)
+                  result = run_result.stdout.strip()
+                  os.remove(exe_path)
+
+               elif lang == "JavaScript":
+                run_result = subprocess.run(["node", temp_path], capture_output=True, text=True)
+                result = run_result.stdout.strip()
+
+           if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+
+           if result == expected:
+            self.result_label.text = "✅ Corect!"
+            global user_progress
+            user_progress.setdefault(lang, {}).setdefault("Mercur", 0)
+            user_progress[lang]["Mercur"] += 1
+            save_progress()
+           else:
+            self.result_label.text = f"❌ Ai returnat '{result}', dar se aștepta '{expected}'."
+
+       except Exception as e:
+          if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
             self.result_label.text = f"⚠️ Eroare: {e}"
-
-        finally:
-           sys.stdout = old_stdout
-
     def next_question(self, instance):
         if self.current_index < len(self.questions) - 1:
             self.current_index += 1
@@ -1436,7 +1527,120 @@ class CodeChallengeScreen(Screen):
         else:
             self.result_label.text = "🎉 Ai terminat toate întrebările!"
 
+class ChatScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.displayed_messages = []
+        self.username = "(anonim)"
+        # 🔧 Main layout
+        self.layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
+        self.add_widget(self.layout)
 
+        # 🌠 Message scroll area
+        self.message_scroll = ScrollView(size_hint=(1, 0.8))
+        self.message_container = BoxLayout(orientation="vertical", size_hint_y=None)
+        self.message_container.bind(minimum_height=self.message_container.setter('height'))
+        self.message_scroll.add_widget(self.message_container)
+        self.layout.add_widget(self.message_scroll)
+
+        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1),
+                          background_normal="", background_color=(0.6, 0.2, 0.8, 1),
+                          color=(1, 1, 1, 1))
+        back_btn.bind(on_press=self.go_back)
+        self.layout.add_widget(back_btn)
+
+        input_row = BoxLayout(size_hint=(1, 0.1), spacing=10)
+        self.input = TextInput(hint_text="Scrie un mesaj...", multiline=False)
+        send_btn = Button(text="Trimite", size_hint=(None, 1), width=100,
+                          background_color=(0.6, 0.2, 0.8, 1))
+        send_btn.bind(on_press=self.send_message)
+        input_row.add_widget(self.input)
+        input_row.add_widget(send_btn)
+        self.layout.add_widget(input_row)
+
+        Clock.schedule_interval(self.update_messages, 10)
+    def on_pre_enter(self, *args):
+        session = load_active_user()
+        self.username = session.get("username", "(anonim)")
+    def send_message(self, instance):
+        text = self.input.text.strip()
+        print("Trimitem:", self.username, text)
+        if text:
+            try:
+                requests.post("http://localhost:5000/send", json={"user": self.username, "text": text})
+                self.input.text = ""
+            except Exception as e:
+                print(f"Eroare la trimitere: {e}")
+
+    def update_messages(self, *args):
+        try:
+            response = requests.get("http://localhost:5000/get_messages")
+            messages = response.json()
+            for msg in messages:
+                if msg not in self.displayed_messages:
+                    is_self = msg['user'] == self.username
+                    bubble = self.create_message_bubble(msg['text'], is_self, msg['user'])
+                    self.message_container.add_widget(bubble)
+                    self.displayed_messages.append(msg)
+        except Exception as e:
+            print(f"Eroare la încărcare: {e}")
+
+    def go_back(self, instance):
+        self.manager.current = "main_screen"
+
+    def create_message_bubble(self, text, is_self, username):
+        wrapper = AnchorLayout(
+            anchor_x='right' if is_self else 'left',
+            size_hint_y=None,
+            height=80
+        )
+
+        bubble = BoxLayout(
+            orientation='vertical',
+            padding=10,
+            size_hint=(None, None),
+            size=(min(len(text) * 10 + 40, 300), 70)
+        )
+
+        with bubble.canvas.before:
+            Color(*(0.6, 0.2, 0.8, 1) if is_self else (0.2, 0.2, 0.4, 1))
+            rect = Rectangle(size=bubble.size, pos=bubble.pos)
+            bubble.bind(size=lambda w, v: setattr(rect, 'size', v))
+            bubble.bind(pos=lambda w, v: setattr(rect, 'pos', v))
+
+        name_label = Label(
+            text=username,
+            size_hint=(1, None),
+            height=20,
+            halign='left',
+            valign='middle',
+            font_size='12sp',
+            color=(1, 1, 1, 0.6)
+        )
+        name_label.bind(texture_size=name_label.setter('size'))
+        name_label.text_size = (bubble.size[0], 20)
+
+        message_label = Label(
+            text=text,
+            size_hint=(1, 1),
+            halign='left',
+            valign='middle',
+            color=(1, 1, 1, 1)
+        )
+        message_label.bind(texture_size=message_label.setter('size'))
+        message_label.text_size = bubble.size
+
+        bubble.add_widget(name_label)
+        bubble.add_widget(message_label)
+        wrapper.add_widget(bubble)
+        return wrapper
+
+
+class CosmicApp(App):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.session = UserSession()
+        self.session.load() 
 class MyApp(App):
     def build(self):
         sm = ScreenManager()
@@ -1444,7 +1648,7 @@ class MyApp(App):
         self.session = UserSession()
         self.session.load()
         sm = ScreenManager(transition=FadeTransition())
-        self.user_input = ""          # va fi setat din LoginScreen
+        self.user_input = ""          
         self.user_mail = ""
         self.user_data = {}   
         self.cale_imagine_selectata = "" 
@@ -1454,6 +1658,16 @@ class MyApp(App):
         sm.add_widget(OptionsScreen(planet_name="Uranus", selected_option="Python", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Venus", selected_option="Python", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Saturn", selected_option="Python", name="options_screen"))
+        for option in ["Python", "C++", "JavaScript"]:
+          sm.add_widget(NavigateScreen(
+          option=option,
+          user_data=self.user_data,
+          user_input=self.user_input,
+          user_mail=self.user_mail,
+          name=f"navigate_screen_{option}"
+    ))
+        sm.add_widget(ChatScreen(name="chat_screen"))
+
   # or whatever your class is
         sm.add_widget(OptionsScreen(planet_name="Uranus", selected_option="C++", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Venus", selected_option="C++", name="options_screen"))
