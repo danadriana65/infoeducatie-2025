@@ -21,6 +21,9 @@ from kivy.graphics import Color, Rectangle
 import os
 import sys
 import json
+import io
+import subprocess
+import tempfile
 from kivy.uix.anchorlayout import AnchorLayout
 import requests
 from kivy.uix.image import Image as KivyImage
@@ -1323,93 +1326,80 @@ code_questions = {
         }
     ],
     "C++": [
-        {
-            "prompt": "Simulează în Python: returnează suma a două numere întregi (5 + 10)",
-            "template": "def suma():\n    return ...",
-            "function": "suma",
-            "expected": 15
-        },
-        {
-            "prompt": "Simulează în Python: returnează caracterul 'A'",
-            "template": "def caracter():\n    return ...",
-            "function": "caracter",
-            "expected": 'A'
-        },
-        {
-            "prompt": "Simulează în Python: returnează valoarea booleană true",
-            "template": "def adevarat():\n    return ...",
-            "function": "adevarat",
-            "expected": True
-        },
-        {
-            "prompt": "Simulează în Python: returnează lungimea stringului 'C++'",
-            "template": "def lungime():\n    return ...",
-            "function": "lungime",
-            "expected": 3
-        },
-        {
-            "prompt": "Simulează în Python: returnează lista [10, 20, 30]",
-            "template": "def vector():\n    return ...",
-            "function": "vector",
-            "expected": [10, 20, 30]
-        },
-        {
-            "prompt": "Simulează în Python: returnează 2 la puterea 3",
-            "template": "def putere():\n    return ...",
-            "function": "putere",
-            "expected": 8
-        },
-        {
-            "prompt": "Simulează în Python: returnează diferența 100 - 25",
-            "template": "def diferenta():\n    return ...",
-            "function": "diferenta",
-            "expected": 75
-        }
-    ],
+    {
+        "prompt": "Scrie un program C++ care afișează suma 5 + 10 folosind `std::cout`",
+        "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "15"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează caracterul 'A'",
+        "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "A"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează valoarea `true`",
+        "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "1"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează lungimea șirului \"C++\"",
+        "template": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "3"
+    },
+    {
+        "prompt": "Scrie un program C++ care afișează valorile unui vector `[10, 20, 30]`",
+        "template": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+        "expected_output": "10 20 30"
+    },
+    {
+    "prompt": "Scrie un program C++ care afișează 2 la puterea 3",
+    "template": "#include <iostream>\n#include <cmath>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+    "expected_output": "8"
+    },
+    {
+    "prompt": "Scrie un program C++ care afișează diferența 100 - 25",
+    "template": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // codul tău aici\n    return 0;\n}",
+    "expected_output": "75"
+    }
+],
+
     "JavaScript": [
-        {
-            "prompt": "Scrie o funcție care returnează 'Hello, World!'",
-            "template": "def hello():\n    return ...",
-            "function": "hello",
-            "expected": "Hello, World!"
-        },
-        {
-            "prompt": "Scrie o funcție care returnează lungimea stringului 'JavaScript'",
-            "template": "def lungime():\n    return ...",
-            "function": "lungime",
-            "expected": 10
-        },
-        {
-            "prompt": "Scrie o funcție care returnează lista [1, 2, 3, 4].length",
-            "template": "def lungime_lista():\n    return ...",
-            "function": "lungime_lista",
-            "expected": 4
-        },
-        {
-            "prompt": "Scrie o funcție care returnează True dacă 10 > 5",
-            "template": "def comparatie():\n    return ...",
-            "function": "comparatie",
-            "expected": True
-        },
-        {
-            "prompt": "Scrie o funcție care returnează concatenarea 'JS' + '2025'",
-            "template": "def concat():\n    return ...",
-            "function": "concat",
-            "expected": "JS2025"
-        },
-        {
-            "prompt": "Scrie o funcție care returnează 3 * 3",
-            "template": "def inmultire():\n    return ...",
-            "function": "inmultire",
-            "expected": 9
-        },
-        {
-            "prompt": "Scrie o funcție care returnează valoarea booleană False",
-            "template": "def fals():\n    return ...",
-            "function": "fals",
-            "expected": False
-        }
-    ]
+    {
+        "prompt": "Scrie un program JavaScript care afișează 'Hello, World!' în consolă",
+        "template": "// codul tău aici\nconsole.log();",
+        "expected_output": "Hello, World!"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează lungimea șirului 'JavaScript'",
+        "template": "// codul tău aici\nlet text = 'JavaScript';\nconsole.log();",
+        "expected_output": "10"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează lungimea listei [1, 2, 3, 4]",
+        "template": "// codul tău aici\nlet lista = [1, 2, 3, 4];\nconsole.log();",
+        "expected_output": "4"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează `true` dacă 10 > 5",
+        "template": "// codul tău aici\nconsole.log();",
+        "expected_output": "true"
+    },
+    {
+        "prompt": "Scrie un program JavaScript care afișează concatenarea 'JS' și '2025'",
+        "template": "// codul tău aici\nconsole.log();",
+        "expected_output": "JS2025"
+    },
+    {
+    "prompt": "Scrie un program JavaScript care afișează 3 * 3 în consolă",
+    "template": "// codul tău aici\nconsole.log();",
+    "expected_output": "9"
+   },
+   {
+    "prompt": "Scrie un program JavaScript care afișează valoarea booleană `false`",
+    "template": "// codul tău aici\nconsole.log();",
+    "expected_output": "false"
+   }
+]
 }
 
 
@@ -1462,37 +1452,67 @@ class CodeChallengeScreen(Screen):
     def run_code(self, instance):
         q = self.questions[self.current_index]
         user_code = self.code_input.text
+        lang = self.selected_option
+        expected = str(q.get("expected_output", "")).strip()
 
-        import sys, io
-        old_stdout = sys.stdout
-        redirected_output = sys.stdout = io.StringIO()
+        self.result_label.text = "⌛ Rulez codul..."
 
         try:
-           local_env = {}
-           exec(user_code, {}, local_env)
+            if lang == "Python":
+            # 🐍 Run Python code using exec()
+               old_stdout = sys.stdout
+               redirected_output = sys.stdout = io.StringIO()
 
-           if q["function"] in local_env:
-             result = local_env[q["function"]]()
-             if result == q["expected"]:
-                self.result_label.text = "✅ Corect!"
+               local_env = {}
+               exec(user_code, {}, local_env)
 
-                # 🧠 Salvăm progresul pentru Mercur
-                global user_progress
-                user_progress.setdefault(self.selected_option, {}).setdefault("Mercur", 0)
-                user_progress[self.selected_option]["Mercur"] += 1
-                save_progress()
-
-             else:
-                self.result_label.text = f"❌ Ai returnat {result}, dar se aștepta {q['expected']}."
-           else:
+               if q["function"] in local_env:
+                result = str(local_env[q["function"]]()).strip()
+               else:
                 self.result_label.text = f"❌ Nu ai definit funcția '{q['function']}'"
+                return
+
+                sys.stdout = old_stdout
+
+            else:
+            # 🌐 Run C++ or JavaScript using subprocess
+               ext = ".cpp" if lang == "C++" else ".js"
+               temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+               temp_file.write(user_code.encode("utf-8"))
+               temp_file.close()  # close file to unlock
+
+               temp_path = temp_file.name
+
+               if lang == "C++":
+                exe_path = temp_path + ".exe"
+                compile_result = subprocess.run(["g++", temp_path, "-o", exe_path],
+                                                capture_output=True, text=True)
+                if compile_result.returncode != 0:
+                    self.result_label.text = f"❌ Eroare la compilare:\n{compile_result.stderr}"
+                    os.remove(temp_path)
+                    return
+                run_result = subprocess.run([exe_path], capture_output=True, text=True)
+                result = run_result.stdout.strip()
+                os.remove(exe_path)
+
+               elif lang == "JavaScript":
+                run_result = subprocess.run(["node", temp_path], capture_output=True, text=True)
+                result = run_result.stdout.strip()
+
+            os.remove(temp_path)
+
+        # ✅ Verificare + salvare progres
+            if result == expected:
+              self.result_label.text = "✅ Corect!"
+              global user_progress
+              user_progress.setdefault(lang, {}).setdefault("Mercur", 0)
+              user_progress[lang]["Mercur"] += 1
+              save_progress()
+            else:
+                self.result_label.text = f"❌ Ai returnat '{result}', dar se aștepta '{expected}'."
 
         except Exception as e:
-            self.result_label.text = f"⚠️ Eroare: {e}"
-
-        finally:
-           sys.stdout = old_stdout
-
+              self.result_label.text = f"⚠️ Eroare: {e}"
     def next_question(self, instance):
         if self.current_index < len(self.questions) - 1:
             self.current_index += 1
@@ -1504,7 +1524,7 @@ class ChatScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.displayed_messages = []
-
+        self.username = "(anonim)"
         # 🔧 Main layout
         self.layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
         self.add_widget(self.layout)
@@ -1533,13 +1553,10 @@ class ChatScreen(Screen):
         input_row.add_widget(send_btn)
         self.layout.add_widget(input_row)
 
-        # 🌐 Username from session
-        session = load_active_user()  # this should be defined elsewhere
-        self.username = session.get("username", "(anonim)")
-
-        # 🔄 Message updates
         Clock.schedule_interval(self.update_messages, 10)
-
+    def on_pre_enter(self, *args):
+        session = load_active_user()
+        self.username = session.get("username", "(anonim)")
     def send_message(self, instance):
         text = self.input.text.strip()
         print("Trimitem:", self.username, text)
