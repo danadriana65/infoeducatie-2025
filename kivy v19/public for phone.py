@@ -329,10 +329,14 @@ class MainScreen(Screen):
         ranking_button = Button(text="Clasament", size_hint=(0.2, 0.1),font_name="Orbitron", pos_hint={"x": 0.7, "y": 0.85}, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         ranking_button.bind(on_press=self.go_to_ranking)
         self.layout.add_widget(ranking_button)
-        chat_btn = Button(text="💬 Chat", size_hint=(0.2, 0.1),font_name="Orbitron", pos_hint={"center_x": 0.5, "y": 0.1}, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        chat_btn = Button(text="Chat", size_hint=(0.2, 0.1),font_name="Orbitron", pos_hint={"center_x": 0.3, "y": 0.1}, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         chat_btn.bind(on_press=lambda x: setattr(self.manager, "current", "chat_screen"))
         self.layout.add_widget(chat_btn)
-        # 🔙 Undo
+        bac_btn = Button(text="Programa Bac", size_hint=(0.2, 0.1),font_name="Orbitron", width=200, height=50,pos_hint={"center_x": 0.7, "y": 0.1},
+                 background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        bac_btn.bind(on_press=lambda instance: setattr(self.manager, "current", "bac_program"))
+        self.layout.add_widget(bac_btn)
+
         undo_button = Button(
             text="Undo",
             size_hint=(0.2, 0.1),
@@ -345,7 +349,6 @@ class MainScreen(Screen):
         )
         self.layout.add_widget(undo_button)
 
-        # ⚙️ Settings
         setting_button = Button(
             text="Settings",
             size_hint=(0.2, 0.1),
@@ -385,6 +388,42 @@ class MainScreen(Screen):
 
     def go_to_ranking(self, instance):
         self.manager.current = "ranking_screen"
+class BacProgramScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        layout = BoxLayout(orientation="vertical", padding=20, spacing=10)
+
+        with layout.canvas.before:
+            Color(0.1, 0.1, 0.3, 1)
+            self.bg_rect = Rectangle(size=layout.size, pos=layout.pos)
+        layout.bind(size=self.update_bg, pos=self.update_bg)
+        LabelBase.register(name="Orbitron", fn_regular="fonts/Orbitron-Regular.ttf")
+        title = Label(text="Programa Bacalaureat Informatica",font_name="Orbitron", font_size=24, color=(1, 1, 1, 1))
+        layout.add_widget(title)
+
+        # Exemplu de conținut — poți completa mai mult
+        programa_text = (
+            "Structuri de date: liste, dicționare, stive, cozi\n"
+            "Algoritmi: sortare, căutare, recursivitate\n"
+            "Funcții și subprograme\n"
+            "Arhitectura PC, fișiere, organizare\n"
+            "Probleme de tip grilă și aplicații"
+        )
+        content = Label(text=programa_text,font_name="Orbitron", font_size=18, color=(1, 1, 1, 1))
+        layout.add_widget(content)
+
+        back_btn = Button(text="Undo", size_hint=(0.3, 0.1),font_name="Orbitron", background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        back_btn.bind(on_press=self.go_back)
+        layout.add_widget(back_btn)
+
+        self.add_widget(layout)
+
+    def update_bg(self, *args):
+        self.bg_rect.size = self.children[0].size
+        self.bg_rect.pos = self.children[0].pos
+
+    def go_back(self, instance):
+        self.manager.current = "main_screen"
 
 class UserDataManager:
     def __init__(self, file_path="user_data.json"):
@@ -413,8 +452,7 @@ class SettingsScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation="vertical", padding=20, spacing=10)
-        self.session_data = {}
-        
+
         with self.layout.canvas.before:
             Color(0.1, 0.1, 0.3, 1)
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
@@ -422,8 +460,12 @@ class SettingsScreen(Screen):
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
         self.add_widget(self.layout)
 
-        self.profile_label = Label(text="No profile picture selected")
-        self.profile_img = None  # placeholder for image widget
+        self.profile_img = None
+        self.session_data = {}
+    LabelBase.register(name="Orbitron", fn_regular="fonts/Orbitron-Regular.ttf")
+    def update_bg(self, *args):
+        self.bg_rect.size = self.layout.size
+        self.bg_rect.pos = self.layout.pos
 
     def on_pre_enter(self, *args):
         self.layout.clear_widgets()
@@ -433,46 +475,58 @@ class SettingsScreen(Screen):
         email = self.session_data.get("email", "(necunoscut)")
         profile_path = self.session_data.get("profile_picture", "")
 
-        self.layout.add_widget(Label(text="Settings", font_size=24))
-        self.layout.add_widget(Label(text=f"Username: {username}", font_size=18))
-        self.layout.add_widget(Label(text=f"Email: {email}", font_size=18))
-        self.layout.add_widget(self.profile_label)
+        # 🎁 Casetă cu datele utilizatorului
+        self.info_box = BoxLayout(orientation="horizontal", spacing=15, padding=10, size_hint_y=None, height=130)
 
+        with self.info_box.canvas.before:
+            Color(0.2, 0.2, 0.4, 1)
+            self.info_bg = Rectangle(size=self.info_box.size, pos=self.info_box.pos)
+        self.info_box.bind(size=self.update_info_bg, pos=self.update_info_bg)
+
+        # 🖼️ Imagine profil
         if profile_path and os.path.exists(profile_path):
             self.update_profile_picture(profile_path)
         else:
-            self.profile_label.text = "(No profile picture selected)"
+            self.profile_img = Label(text="🧑", font_size=50, size_hint=(None, None), size=(100, 100))
+        self.info_box.add_widget(self.profile_img)
 
-        choose_button = Button(text="Choose Profile Picture", size_hint=(None, None),
-                               width=200, height=50, background_normal="",
-                               background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        # 📝 Detalii
+        details_layout = BoxLayout(orientation="vertical", spacing=5)
+        details_layout.add_widget(Label(text=f"Username: {username}", font_size=18, color=(1, 1, 1, 1)))
+        details_layout.add_widget(Label(text=f"Email: {email}", font_size=18, color=(1, 1, 1, 1)))
+        self.info_box.add_widget(details_layout)
+
+        self.layout.add_widget(Label(text="Settings",font_name="Orbitron", font_size=24, size_hint_y=None, height=50, color=(1, 1, 1, 1)))
+        self.layout.add_widget(self.info_box)
+
+        # 🔘 Butoane
+        choose_button = Button(text="Choose Profile Image",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
+                               background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         choose_button.bind(on_press=self.choose_profile_picture)
 
-        remove_button = Button(text="Remove Profile Picture", size_hint=(None, None),
-                               width=200, height=50, background_normal="",
-                               background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        remove_button = Button(text="Delete Profile Image",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
+                               background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         remove_button.bind(on_press=self.remove_profile_picture)
 
-        undo_button = Button(text="Undo", size_hint=(None, None), width=200, height=50,
-                             background_normal="", background_color=(0.6, 0.2, 0.8, 1),
-                             color=(1, 1, 1, 1))
+        undo_button = Button(text="Undo", size_hint=(None, None),font_name="Orbitron", width=200, height=50,
+                             background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         undo_button.bind(on_press=lambda instance: setattr(self.manager, "current", "main_screen"))
 
         self.layout.add_widget(choose_button)
         self.layout.add_widget(remove_button)
         self.layout.add_widget(undo_button)
 
-    def update_bg(self, *args):
-        self.bg_rect.size = self.children[0].size
-        self.bg_rect.pos = self.children[0].pos
+    def update_info_bg(self, *args):
+        self.info_bg.size = self.info_box.size
+        self.info_bg.pos = self.info_box.pos
 
     def choose_profile_picture(self, instance):
         content = BoxLayout(orientation="vertical", spacing=10, padding=10)
         chooser = FileChooserListView(filters=["*.png", "*.jpg", "*.jpeg"], size_hint=(1, 0.9))
-        confirm_btn = Button(text="Use this image", size_hint=(1, 0.1))
+        confirm_btn = Button(text="Folosește imaginea", size_hint=(1, 0.1))
         content.add_widget(chooser)
         content.add_widget(confirm_btn)
-        popup = Popup(title="Choose Profile Picture", content=content, size_hint=(0.9, 0.9))
+        popup = Popup(title="Selectează imaginea de profil", content=content, size_hint=(0.9, 0.9))
         popup.open()
 
         def set_image(_):
@@ -492,7 +546,7 @@ class SettingsScreen(Screen):
 
     def update_profile_picture(self, image_path):
         if self.profile_img:
-            self.layout.remove_widget(self.profile_img)
+            self.info_box.remove_widget(self.profile_img)
 
         try:
             pil_image = PILImage.open(image_path).convert("RGBA")
@@ -509,10 +563,10 @@ class SettingsScreen(Screen):
             texture.blit_buffer(img_data, colorfmt='rgba', bufferfmt='ubyte')
 
             self.profile_img = KivyImage(texture=texture, size_hint=(None, None), size=(100, 100))
-            self.layout.add_widget(self.profile_img)
-            self.profile_label.text = ""
+            self.info_box.add_widget(self.profile_img, index=0)
         except Exception as e:
-            self.profile_label.text = f"Error: {e}"
+            self.profile_img = Label(text=f"Error: {e}", font_size=14)
+            self.info_box.add_widget(self.profile_img, index=0)
 
     def remove_profile_picture(self, instance):
         self.session_data["profile_picture"] = ""
@@ -524,9 +578,9 @@ class SettingsScreen(Screen):
                 json.dump(all_users, f, indent=4)
 
         if self.profile_img:
-            self.layout.remove_widget(self.profile_img)
-            self.profile_img = None
-        self.profile_label.text = "(No profile picture selected)"
+            self.info_box.remove_widget(self.profile_img)
+            self.profile_img = Label(text="🧑", font_size=50, size_hint=(None, None), size=(100, 100))
+            self.info_box.add_widget(self.profile_img, index=0)
 class NavigateScreen(Screen):
     def __init__(self,option, user_data, user_input, user_mail,**kwargs):
         super().__init__(**kwargs)
@@ -554,11 +608,11 @@ class NavigateScreen(Screen):
     size=(480, 60),  
     pos_hint={"center_x": 0.5, "top": 0.98},  
     spacing=15)
-            progress_btn = Button(text = "Progress", size_hint=(None, None),size=(300, 150),font_name="Orbitron", width =150, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            progress_btn = Button(text = "Progress", size_hint=(0.2, 0.1),size=(300, 150),font_name="Orbitron", width =150, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             progress_btn.bind(on_press=lambda x: show_progress_kivy())
-            leaderboard_btn = Button(text = "LeaderBoard", size_hint=(None, None),size=(300, 150), width=150,font_name="Orbitron", height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            leaderboard_btn = Button(text = "LeaderBoard", size_hint=(0.2, 0.1),size=(300, 150), width=150,font_name="Orbitron", height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             leaderboard_btn.bind(on_press=lambda x: show_leaderboard())
-            profile_btn = Button(text= "Profile", size_hint=(None, None),size=(300, 150), width=150, height=50,font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            profile_btn = Button(text= "Profile", size_hint=(0.2, 0.1),size=(300, 150), width=150, height=50,font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             profile_btn.bind(on_press=lambda x: open_profile_popup())
             top_buttons.add_widget(progress_btn)
             top_buttons.add_widget(leaderboard_btn)
@@ -571,10 +625,7 @@ class NavigateScreen(Screen):
                 "Python": "https://www.w3schools.com/python/default.asp",
                 "JavaScript": "https://www.w3schools.com/js/default.asp"
             }
-            if self.option in link_map:
-                theory_btn = Button(text=f"Teorie {self.option}", size_hint=(None, None), width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
-                theory_btn.bind(on_press=lambda instance: webbrowser.open(link_map[self.option]))
-                self.layout.add_widget(theory_btn)
+            
             planet_images = {
             "Uranus": "kivy v19/images/Uranus(1).png",
             "Venus": "kivy v19/images/Venus.png",
@@ -609,11 +660,15 @@ class NavigateScreen(Screen):
 
             self.layout.add_widget(planet_buttons)
 
-            undo_button = Button(text="Undo", size_hint=(None, None),size=(300, 150), width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            undo_button = Button(text="Undo", font_name="Orbitron",size_hint=(None, None),size=(300, 150),pos_hint={"center_x": 0.9, "center_y": 0.9}, width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             undo_button.bind(on_press=lambda instance: setattr(self.manager, "current", "main_screen"))
             self.layout.add_widget(undo_button)
         
             self.add_widget(self.layout) 
+            if self.option in link_map:
+                theory_btn = Button(text=f"Teorie {self.option}",font_name="Orbitron", size_hint=(0.2, 0.1), width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+                theory_btn.bind(on_press=lambda instance: webbrowser.open(link_map[self.option]))
+                self.layout.add_widget(theory_btn)
     def update_bg(self, *args):
                  self.bg_rect.size = self.children[0].size
                  self.bg_rect.pos = self.children[0].pos     
@@ -1093,12 +1148,12 @@ class QuestionScreen(Screen):
         self.layout.add_widget(q_label)
 
         for answer in question_data['answers']:
-            btn = Button(text=answer, size_hint_y=None, height=60,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            btn = Button(text=answer, font_name="Orbitron",size_hint_y=None, height=60,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             btn.bind(on_press=lambda instance, a=answer, b=btn: self.handle_answer(a, b))
             self.layout.add_widget(btn)
             self.buttons.append(btn)
 
-        back_btn = Button(text="Undo", size_hint_y=None, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        back_btn = Button(text="Undo",font_name="Orbitron", size_hint_y=None, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         back_btn.bind(on_press=lambda x: setattr(self.manager, "current", "options_screen"))
         self.layout.add_widget(back_btn)
 
@@ -1248,7 +1303,7 @@ class Cell(Label):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         with self.canvas.after:
-            Color(0.8, 0.8, 0.9, 1)  # culoare contur
+            Color(0.6, 0.2, 0.8, 1) # culoare contur
             self.border = Line(rectangle=(self.x, self.y, self.width, self.height), width=1.2)
 
         self.bind(pos=self.update_border, size=self.update_border)
@@ -1265,8 +1320,8 @@ class RankingScreen(Screen):
             Color(0.1, 0.1, 0.3, 1)
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
-
-        self.layout.add_widget(Label(text="🏆 Clasament Utilizatori", font_size=28, size_hint_y=None, height=50, color=(1,1,1,1)))
+        LabelBase.register(name="Orbitron", fn_regular="fonts/Orbitron-Regular.ttf")
+        self.layout.add_widget(Label(text="Clasament Utilizatori",font_name ="Orbitron", font_size=28, size_hint_y=None, height=50, color=(1,1,1,1)))
 
         user_data = load_user_credentials()
         active = load_active_user()
@@ -1297,7 +1352,7 @@ class RankingScreen(Screen):
         scroll.add_widget(table)
         self.layout.add_widget(scroll)
 
-        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1), background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        back_btn = Button(text="Undo", size_hint=(0.3, 0.1), background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         back_btn.bind(on_press=self.go_back)
         self.layout.add_widget(back_btn)
 
@@ -1443,7 +1498,7 @@ class CodeChallengeScreen(Screen):
         with self.layout.canvas.before:
             Color(0.1, 0.1, 0.3, 1) 
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
-
+        LabelBase.register(name="Orbitron", fn_regular="fonts/Orbitron-Regular.ttf")
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
         self.add_widget(self.layout)
 
@@ -1456,14 +1511,14 @@ class CodeChallengeScreen(Screen):
         self.result_label = Label(text="", font_size=18)
         self.layout.add_widget(self.result_label)
 
-        run_button = Button(text="Rulează codul", size_hint=(1, 0.1), background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        run_button = Button(text="Rulează codul",font_name="Orbitron", size_hint=(1, 0.1), background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         run_button.bind(on_press=self.run_code)
         self.layout.add_widget(run_button)
 
-        next_button = Button(text="Următoarea întrebare", size_hint=(1, 0.1), background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        next_button = Button(text="Următoarea întrebare",font_name="Orbitron", size_hint=(1, 0.1), background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         next_button.bind(on_press=self.next_question)
         self.layout.add_widget(next_button)
-        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1),  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        back_btn = Button(text="Undo", size_hint=(0.3, 0.1),font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         back_btn.bind(on_press=self.go_back)
         self.layout.add_widget(back_btn)
         self.load_question()
@@ -1685,6 +1740,7 @@ class MyApp(App):
         sm.add_widget(OptionsScreen(planet_name="Uranus", selected_option="Python", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Venus", selected_option="Python", name="options_screen"))
         sm.add_widget(OptionsScreen(planet_name="Saturn", selected_option="Python", name="options_screen"))
+        sm.add_widget(BacProgramScreen(name="bac_program"))
         for option in ["Python", "C++", "JavaScript"]:
           sm.add_widget(NavigateScreen(
           option=option,
