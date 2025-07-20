@@ -36,6 +36,10 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserListView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.resources import resource_find
+from dotenv import load_dotenv
+import os
+
+
 def load_notes():
     if os.path.exists("notes.json"):
         with open("notes.json", "r", encoding="utf-8") as f:
@@ -129,6 +133,7 @@ class ImageScreen(Screen):
         self.manager.current = "login_screen"
 def send_confirmation_email(recipient_email, username):
     sender_email = "cosmiccode2025@gmail.com"
+    load_dotenv("aplicatia_ta.env")
     sender_password = os.getenv("EMAIL_PASSWORD")  # Get password from variable named 'EMAIL_PASSWORD'
 
     subject = "Cosmiccode Login Confirmation"
