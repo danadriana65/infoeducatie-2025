@@ -17,7 +17,7 @@ from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 import webbrowser
 from kivy.uix.popup import Popup
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Rectangle, Line
 import os
 import sys
 import json
@@ -1244,47 +1244,69 @@ def open_profile_popup():
 
     popup.open()
 
+class Cell(Label):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas.after:
+            Color(0.8, 0.8, 0.9, 1)  # culoare contur
+            self.border = Line(rectangle=(self.x, self.y, self.width, self.height), width=1.2)
+
+        self.bind(pos=self.update_border, size=self.update_border)
+
+    def update_border(self, *args):
+        self.border.rectangle = (self.x, self.y, self.width, self.height)
+
 class RankingScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = BoxLayout(orientation="vertical", spacing=10, padding=20)
-        with self.layout.canvas.before:
-            Color(0.1, 0.1, 0.3, 1) 
-            self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
 
+        with self.layout.canvas.before:
+            Color(0.1, 0.1, 0.3, 1)
+            self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
-        self.layout.add_widget(Label(text="🏆 Clasament Utilizatori", font_size=24))
+
+        self.layout.add_widget(Label(text="🏆 Clasament Utilizatori", font_size=28, size_hint_y=None, height=50, color=(1,1,1,1)))
 
         user_data = load_user_credentials()
         active = load_active_user()
         active_username = active.get("username")
 
         ranked_users = []
-
         for username, data in user_data.items():
-            progress = data.get("progress", {})  # tip: {'Python': {'Venus': 2, 'Saturn': 1}, ...}
-            total_score = 0
-            for planet_data in progress.values():  # parcurge fiecare limbaj (Python, C++)
-                total_score += sum(planet_data.values())
+            progress = data.get("progress", {})
+            total_score = sum(sum(planet.values()) for planet in progress.values())
             ranked_users.append((username, data.get("email", ""), total_score))
 
-        # sortează descrescător după punctaj
         ranked_users.sort(key=lambda x: x[2], reverse=True)
 
-        for idx, (username, email, score) in enumerate(ranked_users, start=1):
-            label = Label(text=f"{idx}. {username} — {score} puncte", font_size=18)
-            if username == active_username:
-                label.color = (1, 0.84, 0, 1)  # evidențiază utilizatorul activ cu galben
-            self.layout.add_widget(label)
+        table = GridLayout(cols=3, spacing=0, size_hint_y=None, padding=1)
+        table.bind(minimum_height=table.setter('height'))
 
-        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1),  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        headers = ["Loc", "Username", "Punctaj"]
+        for title in headers:
+            table.add_widget(Cell(text=title, bold=True, font_size=20, size_hint_y=None, height=40, color=(0.9,0.9,0.9,1)))
+
+        for idx, (username, email, score) in enumerate(ranked_users, start=1):
+            color = (1, 0.84, 0, 1) if username == active_username else (1, 1, 1, 1)
+            table.add_widget(Cell(text=str(idx), font_size=18, color=color, size_hint_y=None, height=32))
+            table.add_widget(Cell(text=username, font_size=18, color=color, size_hint_y=None, height=32))
+            table.add_widget(Cell(text=str(score), font_size=18, color=color, size_hint_y=None, height=32))
+
+        scroll = ScrollView(size_hint=(1, 0.8))
+        scroll.add_widget(table)
+        self.layout.add_widget(scroll)
+
+        back_btn = Button(text="Înapoi", size_hint=(0.3, 0.1), background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         back_btn.bind(on_press=self.go_back)
         self.layout.add_widget(back_btn)
 
         self.add_widget(self.layout)
+
     def update_bg(self, *args):
-                 self.bg_rect.size = self.children[0].size
-                 self.bg_rect.pos = self.children[0].pos 
+        self.bg_rect.size = self.layout.size
+        self.bg_rect.pos = self.layout.pos
+
     def go_back(self, instance):
         self.manager.current = "main_screen"
 code_questions = {
