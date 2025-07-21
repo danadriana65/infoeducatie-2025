@@ -659,6 +659,32 @@ class NavigateScreen(Screen):
                  planet_buttons.add_widget(planet_group)
 
             self.layout.add_widget(planet_buttons)
+            weekly_graph_btn = Button(
+             text="📅 Generează grafic progres săptămânal",
+             font_name="Orbitron",
+             size_hint=(None, None),
+             size=(300, 190),
+             pos_hint={"center_x": 0.9, "center_y": 0.5},
+             background_normal="",
+             background_color=(0.6, 0.2, 0.8, 1),
+             color=(1, 1, 1, 1)
+)
+            language_graph_btn = Button(
+              text="📊 Grafic utilizare limbaje",
+              font_name="Orbitron",
+              size_hint=(None, None),
+              size=(300, 190),
+              pos_hint={"center_x": 0.9, "center_y": 0.3},
+              background_normal="",
+              background_color=(0.6, 0.2, 0.8, 1),
+              color=(1, 1, 1, 1)
+)
+            language_graph_btn.bind(on_press=self.open_language_graph)
+            self.layout.add_widget(language_graph_btn)
+
+
+            weekly_graph_btn.bind(on_press=self.open_weekly_graph)
+            self.layout.add_widget(weekly_graph_btn)
 
             undo_button = Button(text="Undo", font_name="Orbitron",size_hint=(None, None),size=(300, 150),pos_hint={"center_x": 0.9, "center_y": 0.9}, width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             undo_button.bind(on_press=lambda instance: setattr(self.manager, "current", "main_screen"))
@@ -683,7 +709,48 @@ class NavigateScreen(Screen):
         if not self.manager.has_screen(screen_name):
             self.manager.add_widget(OptionsScreen(planet_name, self.option, name=screen_name))
         self.manager.current = screen_name
+    def open_weekly_graph(self, instance):
+     from grafic import plot_weekly_progress  # Dacă îl ai în alt fișier
+     plot_weekly_progress()  # Generează imaginea
+    
+    # Popup în Kivy
+     content = FloatLayout()
+     image = Image(source="weekly_progress_time_allocation.png", allow_stretch=True, keep_ratio=False,
+                  size_hint=(0.9, 0.85), pos_hint={"center_x": 0.5, "center_y": 0.55})
+     close_btn = Button(text="Închide", size_hint=(None, None), size=(200, 50),
+                       pos_hint={"center_x": 0.5, "y": 0.05}, font_name="Orbitron")
+     close_btn.bind(on_release=lambda x: popup.dismiss())
+     content.add_widget(image)
+     content.add_widget(close_btn)
 
+     popup = Popup(title="📈 Progresul săptămânii",
+                  content=content,
+                  size_hint=(0.9, 0.9),
+                  background_color=(0, 0.137, 0.4, 1),
+                  title_color=(1, 1, 1, 1),
+                  auto_dismiss=False)
+     popup.open()
+    def open_language_graph(self, instance):
+       from grafic_1 import plot_language_usage  # Dacă e în alt fișier .py
+       plot_language_usage()  # Generează graficul
+
+    # Afișează într-un popup
+       content = FloatLayout()
+       image = Image(source="language_usage_bar_chart.png", allow_stretch=True, keep_ratio=False,
+                  size_hint=(0.9, 0.85), pos_hint={"center_x": 0.5, "center_y": 0.55})
+       close_btn = Button(text="Închide", size_hint=(None, None), size=(200, 50),
+                       pos_hint={"center_x": 0.5, "y": 0.05}, font_name="Orbitron")
+       close_btn.bind(on_release=lambda x: popup.dismiss())
+       content.add_widget(image)
+       content.add_widget(close_btn)
+
+       popup = Popup(title="💡 Utilizare limbaje de programare",
+                  content=content,
+                  size_hint=(0.9, 0.9),
+                  background_color=(0, 0.137, 0.4, 1),
+                  title_color=(1, 1, 1, 1),
+                  auto_dismiss=False)
+       popup.open()
 
 class OptionsScreen(Screen):
     def __init__(self, planet_name, selected_option, **kwargs):
