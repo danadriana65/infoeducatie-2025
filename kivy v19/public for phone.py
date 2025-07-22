@@ -1245,10 +1245,18 @@ class QuestionScreen(Screen):
             self.buttons.append(btn)
 
         back_btn = Button(text="Undo",font_name="Orbitron", size_hint_y=None, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
-        back_btn.bind(on_press=lambda x: setattr(self.manager, "current", "options_screen"))
+        back_btn.bind(on_press=self.go_back)
         self.layout.add_widget(back_btn)
 
         self.add_widget(self.layout)
+    def go_back(self, instance):
+      if self.manager.screen_names.index(self.manager.current) > 0:
+        # Te duce la ecranul anterior
+        previous_screen = self.manager.screen_names[self.manager.screen_names.index(self.manager.current) - 1]
+        self.manager.current = previous_screen
+      else:
+        print("⛔ Nu există ecran anterior.")
+
     def update_bg(self, *args):
                  self.bg_rect.size = self.children[0].size
                  self.bg_rect.pos = self.children[0].pos     
@@ -1310,7 +1318,6 @@ def save_progress():
     else:
         elapsed_minutes = 0  # fallback dacă nu ai cronometru
 
-    # 📝 Salvăm datele zilnice reale
     save_daily_metrics(total_correct_today, elapsed_minutes)
 
 import pandas as pd
