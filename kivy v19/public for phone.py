@@ -922,7 +922,13 @@ class OptionsScreen(Screen):
       if self.manager.has_screen("question"):
          self.manager.remove_widget(self.manager.get_screen("question"))
 
-      question_screen = QuestionScreen(question_data, name="question")
+      question_screen = QuestionScreen(
+    question_data=question_data,
+    selected_option=self.selected_option,
+    planet_name=self.planet_name,
+    name="question"
+)
+
       self.manager.add_widget(question_screen)
       self.manager.current = "question"
 questions_javascript_code = [
@@ -1195,51 +1201,59 @@ correct_answers_javascript_error = [
 ]
 
 class Image2Screen(Screen):
-    def __init__(self, image_path, next_screen, question_data, **kwargs):
+    def __init__(self, image_path, next_screen, selected_option, planet_name, question_data, **kwargs):
         super().__init__(**kwargs)
         self.next_screen = next_screen
+        self.selected_option = selected_option
+        self.planet_name = planet_name
         self.question_data = question_data
 
         layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
         self.add_widget(layout)
 
+        
         if os.path.exists(image_path):
             img = Image(source=image_path, allow_stretch=True, keep_ratio=True)
             layout.add_widget(img)
         else:
-            layout.add_widget(Label(text="Imaginea nu a fost găsită."))
+            layout.add_widget(Label(text="Imaginea nu a fost găsită.", font_size=20))
 
-        continue_btn = Button(text="Continuă", size_hint=(0.4, 0.1), pos_hint={"center_x": 0.5})
-        continue_btn.bind(on_press=self.go_back)
+        continue_btn = Button(
+            text="Continuă",
+            size_hint=(0.4, 0.1),
+            pos_hint={"center_x": 0.5},
+            font_size=18,
+            background_normal="",
+            background_color=(0.6, 0.2, 0.8, 1),
+            color=(1, 1, 1, 1)
+        )
+        continue_btn.bind(on_press=self.go_back_to_options)
         layout.add_widget(continue_btn)
 
-    def go_back(self, *args):
-    # Obține lista de ecrane și poziția curentă
-      screen_list = self.manager.screen_names
-      current_index = screen_list.index(self.manager.current)
+    def go_back_to_options(self, instance):
+        screen_name = f"options_screen_{self.planet_name}_{self.selected_option}"
+        if self.manager.has_screen(screen_name):
+            self.manager.current = screen_name
+        else:
+            print(f"❌ Ecranul '{screen_name}' nu există în ScreenManager.")
 
-      if current_index > 0:
-        previous_screen = screen_list[current_index - 1]
-        self.manager.current = previous_screen
-      else:
-        print("⛔ Nu există ecran anterior.")
 
-# Screen to display the question and handle answers
 user_progress ={}
 from datetime import datetime
 class QuestionScreen(Screen):
-    def __init__(self, question_data, **kwargs):
+    def __init__(self, question_data, selected_option, planet_name, **kwargs):
         super().__init__(**kwargs)
-        
+        self.planet_name = planet_name
+        self.selected_option = selected_option
+        self.question_data = question_data
         self.total_correct_today = 0
         self.time_spent_today = 0
         self.start_time = datetime.now()
-        self.question_data = question_data
         self.buttons = []
-        # În handle_answer, în loc să creezi din nou:
+
         self.layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
         with self.layout.canvas.before:
-            Color(0.1, 0.1, 0.3, 1) 
+            Color(0.1, 0.1, 0.3, 1)
             self.bg_rect = Rectangle(size=self.layout.size, pos=self.layout.pos)
 
         self.layout.bind(size=self.update_bg, pos=self.update_bg)
@@ -1247,51 +1261,73 @@ class QuestionScreen(Screen):
         self.layout.add_widget(q_label)
 
         for answer in question_data['answers']:
-            btn = Button(text=answer, font_name="Orbitron",size_hint_y=None, height=60,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            btn = Button(
+                text=answer,
+                font_name="Orbitron",
+                size_hint_y=None,
+                height=60,
+                background_normal="",
+                background_color=(0.6, 0.2, 0.8, 1),
+                color=(1, 1, 1, 1)
+            )
             btn.bind(on_press=lambda instance, a=answer, b=btn: self.handle_answer(a, b))
             self.layout.add_widget(btn)
             self.buttons.append(btn)
 
-        back_btn = Button(text="Undo",font_name="Orbitron", size_hint_y=None, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
-        back_btn.bind(on_press=self.go_back)
+        back_btn = Button(text="Undo", font_name="Orbitron", size_hint_y=None, height=50,
+                          background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+        back_btn.bind(on_press=self.go_back_to_options)
         self.layout.add_widget(back_btn)
 
         self.add_widget(self.layout)
-    def go_back(self, instance):
-      if self.manager.screen_names.index(self.manager.current) > 0:
-        # Te duce la ecranul anterior
-        previous_screen = self.manager.screen_names[self.manager.screen_names.index(self.manager.current) - 1]
-        self.manager.current = previous_screen
-      else:
-        print("⛔ Nu există ecran anterior.")
 
     def update_bg(self, *args):
-                 self.bg_rect.size = self.children[0].size
-                 self.bg_rect.pos = self.children[0].pos     
+        self.bg_rect.size = self.children[0].size
+        self.bg_rect.pos = self.children[0].pos
+
+    def go_back_to_options(self, instance):
+        screen_name = f"options_screen_{self.planet_name}_{self.selected_option}"
+        if self.manager.has_screen(screen_name):
+            self.manager.current = screen_name
+        else:
+            print(f"❌ Ecranul '{screen_name}' nu există în ScreenManager.")
+
     def handle_answer(self, selected, button):
         for b in self.buttons:
             b.disabled = True
+
         correct = self.question_data['correct']
         planet = self.question_data['planet']
         option = self.question_data['option']
         elapsed = int((datetime.now() - self.start_time).total_seconds() / 60)
         self.time_spent_today = elapsed
-        if selected == correct:
-         button.background_color = (0, 1, 0, 1)
-         user_progress.setdefault(option, {}).setdefault(planet, 0)
-         user_progress[option][planet] += 1
-         image_path = r"kivy v19/videos/congrats_image.png"
-         self.total_correct_today += 1
+
+        if selected.strip().lower() == correct.strip().lower():
+            button.background_color = (0, 1, 0, 1)
+            user_progress.setdefault(option, {}).setdefault(planet, 0)
+            user_progress[option][planet] += 1
+            self.total_correct_today += 1
+            image_path = r"kivy v19/videos/congrats_image.png"
         else:
-         button.background_color = (1, 0, 0, 1)
-         image_path = r"kivy v19/videos/try_again v2.png"
+            button.background_color = (1, 0, 0, 1)
+            image_path = r"kivy v19/videos/try_again v2.png"
 
-         save_progress(self.total_correct_today, self.time_spent_today)
+        save_progress(self.total_correct_today, self.time_spent_today)
 
-# Tranziție către ecranul cu imagine
-        image_screen = Image2Screen(image_path, 'options_screen', self.question_data, name='feedback_image')
+        if self.manager.has_screen("feedback_image"):
+           self.manager.remove_widget(self.manager.get_screen("feedback_image"))
+
+        image_screen = Image2Screen(
+    image_path=image_path,
+    next_screen='options_screen',
+    selected_option=self.selected_option,
+    planet_name=self.planet_name,
+    question_data=self.question_data,
+    name='feedback_image'
+)
         self.manager.add_widget(image_screen)
         self.manager.current = 'feedback_image'
+
 def save_progress(total_correct_today, time_spent_today):
     global user_progress
 
