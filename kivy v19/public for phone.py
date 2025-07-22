@@ -38,7 +38,25 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.resources import resource_find
 from dotenv import load_dotenv
 import os
+import datetime
 
+def save_daily_metrics(correct_answers, time_spent):
+    azi = datetime.datetime.today().strftime('%A')  # ex: 'Monday'
+    filepath = "daily_progress.json"
+
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            progres = json.load(f)
+    else:
+        progres = {}
+
+    progres[azi] = {
+        "correct": correct_answers,
+        "time": time_spent
+    }
+
+    with open(filepath, "w") as f:
+        json.dump(progres, f, indent=4)
 
 def load_notes():
     if os.path.exists("notes.json"):
@@ -659,16 +677,19 @@ class NavigateScreen(Screen):
                  planet_buttons.add_widget(planet_group)
 
             self.layout.add_widget(planet_buttons)
-            weekly_graph_btn = Button(
-             text="📅 Generează grafic progres săptămânal",
-             font_name="Orbitron",
-             size_hint=(None, None),
-             size=(300, 190),
-             pos_hint={"center_x": 0.9, "center_y": 0.5},
-             background_normal="",
-             background_color=(0.6, 0.2, 0.8, 1),
-             color=(1, 1, 1, 1)
+            btn_weekly_progress = Button(
+    text="Grafic progres săptămânal",
+    font_name="Orbitron",
+    size_hint=(None, None),
+    size=(300, 120),
+    pos_hint={"center_x": 0.9, "center_y": 0.5},
+    background_normal="",
+    background_color=(0.6, 0.2, 0.8, 1),
+    color=(1, 1, 1, 1)
 )
+            btn_weekly_progress.bind(on_press=self.open_weekly_graph)
+            self.layout.add_widget(btn_weekly_progress)
+
             language_graph_btn = Button(
               text="📊 Grafic utilizare limbaje",
               font_name="Orbitron",
@@ -682,9 +703,6 @@ class NavigateScreen(Screen):
             language_graph_btn.bind(on_press=self.open_language_graph)
             self.layout.add_widget(language_graph_btn)
 
-
-            weekly_graph_btn.bind(on_press=self.open_weekly_graph)
-            self.layout.add_widget(weekly_graph_btn)
 
             undo_button = Button(text="Undo", font_name="Orbitron",size_hint=(None, None),size=(300, 150),pos_hint={"center_x": 0.9, "center_y": 0.9}, width=200, height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             undo_button.bind(on_press=lambda instance: setattr(self.manager, "current", "main_screen"))
@@ -710,47 +728,50 @@ class NavigateScreen(Screen):
             self.manager.add_widget(OptionsScreen(planet_name, self.option, name=screen_name))
         self.manager.current = screen_name
     def open_weekly_graph(self, instance):
-     from grafic import plot_weekly_progress  # Dacă îl ai în alt fișier
-     plot_weekly_progress()  # Generează imaginea
-    
-    # Popup în Kivy
-     content = FloatLayout()
-     image = Image(source="weekly_progress_time_allocation.png", allow_stretch=True, keep_ratio=False,
-                  size_hint=(0.9, 0.85), pos_hint={"center_x": 0.5, "center_y": 0.55})
-     close_btn = Button(text="Închide", size_hint=(None, None), size=(200, 50),
-                       pos_hint={"center_x": 0.5, "y": 0.05}, font_name="Orbitron")
-     close_btn.bind(on_release=lambda x: popup.dismiss())
-     content.add_widget(image)
-     content.add_widget(close_btn)
+      plot_weekly_progress()  # Generează imaginea
 
-     popup = Popup(title="📈 Progresul săptămânii",
+      content = FloatLayout()
+      image = Image(source="weekly_progress_time_allocation.png", allow_stretch=True,
+                  size_hint=(0.9, 0.85), pos_hint={"center_x": 0.5, "center_y": 0.55})
+      close_btn = Button(text="Închide", size_hint=(None, None), size=(200, 50),
+                       pos_hint={"center_x": 0.5, "y": 0.05}, font_name="Orbitron")
+      close_btn.bind(on_release=lambda x: popup.dismiss())
+      content.add_widget(image)
+      content.add_widget(close_btn)
+
+      popup = Popup(title="📈 Progres săptămânal",
                   content=content,
                   size_hint=(0.9, 0.9),
                   background_color=(0, 0.137, 0.4, 1),
                   title_color=(1, 1, 1, 1),
                   auto_dismiss=False)
-     popup.open()
+      popup.open()
+
     def open_language_graph(self, instance):
-       from grafic_1 import plot_language_usage  # Dacă e în alt fișier .py
-       plot_language_usage()  # Generează graficul
+    
+      global user_progress
+      plot_language_usage_real(user_progress)
 
-    # Afișează într-un popup
-       content = FloatLayout()
-       image = Image(source="language_usage_bar_chart.png", allow_stretch=True, keep_ratio=False,
+    # Afișează graficul în popup
+      content = FloatLayout()
+      image = Image(source="language_usage_bar_chart.png", allow_stretch=True, keep_ratio=False,
                   size_hint=(0.9, 0.85), pos_hint={"center_x": 0.5, "center_y": 0.55})
-       close_btn = Button(text="Închide", size_hint=(None, None), size=(200, 50),
-                       pos_hint={"center_x": 0.5, "y": 0.05}, font_name="Orbitron")
-       close_btn.bind(on_release=lambda x: popup.dismiss())
-       content.add_widget(image)
-       content.add_widget(close_btn)
 
-       popup = Popup(title="💡 Utilizare limbaje de programare",
+      close_btn = Button(text="Închide", size_hint=(None, None), size=(200, 50),
+                       pos_hint={"center_x": 0.5, "y": 0.05}, font_name="Orbitron")
+      close_btn.bind(on_release=lambda x: popup.dismiss())
+
+      content.add_widget(image)
+      content.add_widget(close_btn)
+
+      popup = Popup(title="💡 Utilizare limbaje de programare",
                   content=content,
                   size_hint=(0.9, 0.9),
                   background_color=(0, 0.137, 0.4, 1),
                   title_color=(1, 1, 1, 1),
                   auto_dismiss=False)
-       popup.open()
+      popup.open()
+
 
 class OptionsScreen(Screen):
     def __init__(self, planet_name, selected_option, **kwargs):
@@ -1202,6 +1223,9 @@ user_progress ={}
 class QuestionScreen(Screen):
     def __init__(self, question_data, **kwargs):
         super().__init__(**kwargs)
+        self.total_correct_today = 0
+        self.time_spent_today = 0
+
         self.question_data = question_data
         self.buttons = []
         # În handle_answer, în loc să creezi din nou:
@@ -1231,7 +1255,6 @@ class QuestionScreen(Screen):
     def handle_answer(self, selected, button):
         for b in self.buttons:
             b.disabled = True
-
         correct = self.question_data['correct']
         planet = self.question_data['planet']
         option = self.question_data['option']
@@ -1241,11 +1264,12 @@ class QuestionScreen(Screen):
          user_progress.setdefault(option, {}).setdefault(planet, 0)
          user_progress[option][planet] += 1
          image_path = r"kivy v19/videos/congrats_image.png"
+         self.total_correct_today += 1
         else:
          button.background_color = (1, 0, 0, 1)
          image_path = r"kivy v19/videos/try_again v2.png"
 
-         save_progress()
+         save_progress(self.total_correct_today, self.time_spent_today)
 
 # Tranziție către ecranul cu imagine
         image_screen = Image2Screen(image_path, 'options_screen', self.question_data, name='feedback_image')
@@ -1254,7 +1278,7 @@ class QuestionScreen(Screen):
 def save_progress():
     global user_progress
 
-    print("Progres salvat:", user_progress)
+    print("📁 Progres salvat:", user_progress)
 
     active = load_active_user()
     username = active.get("username")
@@ -1270,6 +1294,101 @@ def save_progress():
         print(f"✅ Progres salvat pentru: {username}")
     else:
         print(f"❌ Utilizatorul {username} nu există în baza de date.")
+        return
+
+    # 👇 Extragem progresul curent pe zi (calculăm totalul întrebărilor corecte)
+    total_correct_today = 0
+    for option in user_progress:
+        for planet in user_progress[option]:
+            total_correct_today += user_progress[option][planet]
+
+    # ⏱️ Calculăm timpul petrecut (dacă ai un timer în aplicație, înlocuiește aici)
+    from datetime import datetime
+    if hasattr(App.get_running_app(), "session_start_time"):
+        start_time = App.get_running_app().session_start_time
+        elapsed_minutes = int((datetime.now() - start_time).total_seconds() / 60)
+    else:
+        elapsed_minutes = 0  # fallback dacă nu ai cronometru
+
+    # 📝 Salvăm datele zilnice reale
+    save_daily_metrics(total_correct_today, elapsed_minutes)
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def plot_weekly_progress():
+    zile = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    ro_translation = {
+        'Monday': 'Luni', 'Tuesday': 'Marți', 'Wednesday': 'Miercuri',
+        'Thursday': 'Joi', 'Friday': 'Vineri', 'Saturday': 'Sâmbătă', 'Sunday': 'Duminică'
+    }
+
+    try:
+        with open("daily_progress.json", "r") as f:
+            progress = json.load(f)
+    except FileNotFoundError:
+        progress = {}
+
+    correct = []
+    time_spent = []
+
+    for zi in zile:
+        entry = progress.get(zi, {"correct": 0, "time": 0})
+        correct.append(entry["correct"])
+        time_spent.append(entry["time"])
+
+    zile_ro = [ro_translation[z] for z in zile]
+    df = pd.DataFrame({
+        'Ziua': zile_ro,
+        'Întrebări Corecte': correct,
+        'Timp Alocat (min)': time_spent
+    })
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['Ziua'], df['Întrebări Corecte'], marker='o', label='✅ Întrebări Corecte', color='#6A0DAD')
+    plt.plot(df['Ziua'], df['Timp Alocat (min)'], marker='s', label='🕒 Timp Alocat (min)', color='#1E90FF')
+    plt.title('Progresul săptămânal al utilizatorului', fontsize=14)
+    plt.xlabel('Ziua')
+    plt.ylabel('Valoare')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('weekly_progress_time_allocation.png')
+    plt.close()
+import seaborn as sns
+
+def plot_language_usage_real(user_progress):
+    sns.set(style="whitegrid")
+
+    # Calculăm totalul pentru fiecare limbaj
+    language_totals = {}
+    for language, planets in user_progress.items():
+        total = sum(planets.values())
+        language_totals[language] = total
+
+    # Construim DataFrame
+    df = pd.DataFrame({
+        'Limbaj': list(language_totals.keys()),
+        'Întrebări Corecte': list(language_totals.values())
+    })
+
+    # Creăm graficul
+    plt.figure(figsize=(8, 6))
+    sns.barplot(x='Limbaj', y='Întrebări Corecte', data=df, palette='viridis')
+    plt.title('Utilizarea limbajelor de programare învățate', fontsize=16)
+    plt.xlabel('Limbaj de programare', fontsize=14)
+    plt.ylabel('Întrebări corecte', fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
+
+    # Salvăm imaginea
+    output_path = "language_usage_bar_chart.png"
+    plt.savefig(output_path)
+    plt.close()
+
+    print(f"✅ Grafic salvat ca '{output_path}'")
+
 def show_progress_kivy():
     global user_progress
     progress_message = "Progresul tău:\n"
