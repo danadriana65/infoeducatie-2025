@@ -42,7 +42,7 @@ from datetime import datetime
 load_dotenv() 
 def save_daily_metrics(correct_answers, time_spent):
     from datetime import datetime
-    azi = datetime.datetime.today().strftime('%A')  # ex: 'Monday'
+    azi = datetime.today().strftime('%A')  # ex: 'Monday'
     filepath = "daily_progress.json"
 
     if os.path.exists(filepath):
