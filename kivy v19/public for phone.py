@@ -38,9 +38,10 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.resources import resource_find
 from dotenv import load_dotenv
 import os
-import datetime
-
+from datetime import datetime
+load_dotenv() 
 def save_daily_metrics(correct_answers, time_spent):
+    from datetime import datetime
     azi = datetime.datetime.today().strftime('%A')  # ex: 'Monday'
     filepath = "daily_progress.json"
 
@@ -151,7 +152,7 @@ class ImageScreen(Screen):
         self.manager.current = "login_screen"
 def send_confirmation_email(recipient_email, username):
     sender_email = "cosmiccode2025@gmail.com"
-    load_dotenv("aplicatia_ta.env")
+    load_dotenv("kivy v19/aplicatia_ta.env")
     sender_password = os.getenv("EMAIL_PASSWORD")  # Get password from variable named 'EMAIL_PASSWORD'
 
     subject = "Cosmiccode Login Confirmation"
@@ -1209,23 +1210,30 @@ class Image2Screen(Screen):
             layout.add_widget(Label(text="Imaginea nu a fost găsită."))
 
         continue_btn = Button(text="Continuă", size_hint=(0.4, 0.1), pos_hint={"center_x": 0.5})
-        continue_btn.bind(on_press=self.go_next)
+        continue_btn.bind(on_press=self.go_back)
         layout.add_widget(continue_btn)
 
-    def go_next(self, *args):
-        if self.manager.has_screen(self.next_screen):
-            self.manager.current = self.next_screen
-        else:
-            print(f"Eroare: ecranul '{self.next_screen}' nu este înregistrat în ScreenManager.")
-        self.manager.remove_widget(self)
+    def go_back(self, *args):
+    # Obține lista de ecrane și poziția curentă
+      screen_list = self.manager.screen_names
+      current_index = screen_list.index(self.manager.current)
+
+      if current_index > 0:
+        previous_screen = screen_list[current_index - 1]
+        self.manager.current = previous_screen
+      else:
+        print("⛔ Nu există ecran anterior.")
+
 # Screen to display the question and handle answers
 user_progress ={}
+from datetime import datetime
 class QuestionScreen(Screen):
     def __init__(self, question_data, **kwargs):
         super().__init__(**kwargs)
+        
         self.total_correct_today = 0
         self.time_spent_today = 0
-
+        self.start_time = datetime.now()
         self.question_data = question_data
         self.buttons = []
         # În handle_answer, în loc să creezi din nou:
@@ -1266,7 +1274,8 @@ class QuestionScreen(Screen):
         correct = self.question_data['correct']
         planet = self.question_data['planet']
         option = self.question_data['option']
-
+        elapsed = int((datetime.now() - self.start_time).total_seconds() / 60)
+        self.time_spent_today = elapsed
         if selected == correct:
          button.background_color = (0, 1, 0, 1)
          user_progress.setdefault(option, {}).setdefault(planet, 0)
@@ -1283,7 +1292,7 @@ class QuestionScreen(Screen):
         image_screen = Image2Screen(image_path, 'options_screen', self.question_data, name='feedback_image')
         self.manager.add_widget(image_screen)
         self.manager.current = 'feedback_image'
-def save_progress():
+def save_progress(total_correct_today, time_spent_today):
     global user_progress
 
     print("📁 Progres salvat:", user_progress)
@@ -1304,21 +1313,9 @@ def save_progress():
         print(f"❌ Utilizatorul {username} nu există în baza de date.")
         return
 
-    # 👇 Extragem progresul curent pe zi (calculăm totalul întrebărilor corecte)
-    total_correct_today = 0
-    for option in user_progress:
-        for planet in user_progress[option]:
-            total_correct_today += user_progress[option][planet]
+    # 🧠 Folosește valorile transmise, nu le recalculează
+    save_daily_metrics(total_correct_today, time_spent_today)
 
-    # ⏱️ Calculăm timpul petrecut (dacă ai un timer în aplicație, înlocuiește aici)
-    from datetime import datetime
-    if hasattr(App.get_running_app(), "session_start_time"):
-        start_time = App.get_running_app().session_start_time
-        elapsed_minutes = int((datetime.now() - start_time).total_seconds() / 60)
-    else:
-        elapsed_minutes = 0  # fallback dacă nu ai cronometru
-
-    save_daily_metrics(total_correct_today, elapsed_minutes)
 
 import pandas as pd
 import matplotlib.pyplot as plt
