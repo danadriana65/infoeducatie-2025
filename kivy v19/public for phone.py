@@ -497,7 +497,7 @@ class SettingsScreen(Screen):
         email = self.session_data.get("email", "(necunoscut)")
         profile_path = self.session_data.get("profile_picture", "")
 
-        # 🎁 Casetă cu datele utilizatorului
+        
         self.info_box = BoxLayout(orientation="horizontal", spacing=15, padding=10, size_hint_y=None, height=130)
 
         with self.info_box.canvas.before:
@@ -505,14 +505,14 @@ class SettingsScreen(Screen):
             self.info_bg = Rectangle(size=self.info_box.size, pos=self.info_box.pos)
         self.info_box.bind(size=self.update_info_bg, pos=self.update_info_bg)
 
-        # 🖼️ Imagine profil
+    
         if profile_path and os.path.exists(profile_path):
             self.update_profile_picture(profile_path)
         else:
             self.profile_img = Label(text="🧑", font_size=50, size_hint=(None, None), size=(100, 100))
         self.info_box.add_widget(self.profile_img)
 
-        # 📝 Detalii
+        
         details_layout = BoxLayout(orientation="vertical", spacing=5)
         details_layout.add_widget(Label(text=f"Username: {username}", font_size=18, color=(1, 1, 1, 1)))
         details_layout.add_widget(Label(text=f"Email: {email}", font_size=18, color=(1, 1, 1, 1)))
@@ -521,7 +521,7 @@ class SettingsScreen(Screen):
         self.layout.add_widget(Label(text="Settings",font_name="Orbitron", font_size=24, size_hint_y=None, height=50, color=(1, 1, 1, 1)))
         self.layout.add_widget(self.info_box)
 
-        # 🔘 Butoane
+        
         choose_button = Button(text="Choose Profile Image",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
                                background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         choose_button.bind(on_press=self.choose_profile_picture)
