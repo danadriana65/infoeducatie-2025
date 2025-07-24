@@ -7,6 +7,9 @@ from kivy.app import App
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.label import Label
 from kivy.core.text import LabelBase
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from PIL import Image as PILImage, ImageDraw
 from kivy.uix.image import Image
@@ -1353,8 +1356,6 @@ def save_progress(total_correct_today, time_spent_today):
     save_daily_metrics(total_correct_today, time_spent_today)
 
 
-import pandas as pd
-import matplotlib.pyplot as plt
 
 def plot_weekly_progress():
     zile = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -1395,7 +1396,7 @@ def plot_weekly_progress():
     plt.tight_layout()
     plt.savefig('weekly_progress_time_allocation.png')
     plt.close()
-import seaborn as sns
+
 
 def plot_language_usage_real(user_progress):
     sns.set(style="whitegrid")
