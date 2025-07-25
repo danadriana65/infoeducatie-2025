@@ -6,5 +6,9 @@
     "Thursday": {
         "correct": 1,
         "time": 0
+    },
+    "Friday": {
+        "correct": 1,
+        "time": 0
     }
 }
