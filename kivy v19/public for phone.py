@@ -212,7 +212,7 @@ class LoginScreen(Screen):
         self.layout.add_widget(self.message_label)
 
         # 🔘 Butoane
-        submit_button = Button(text="Create Account", size_hint=(0.3, 0.1),
+        submit_button = Button(text="Creare cont", size_hint=(0.3, 0.1),
                                pos_hint={"center_x": 0.5, "center_y": 0.25},  font_name="Roboto",  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1,1,1,1))
         submit_button.bind(on_press=self.submit_username)
         self.layout.add_widget(submit_button)
@@ -372,7 +372,7 @@ class MainScreen(Screen):
         self.layout.add_widget(undo_button)
 
         setting_button = Button(
-            text="Settings",
+            text="Setari",
             size_hint=(0.2, 0.1),
             font_name="Orbitron",
             pos_hint={"x": 0.4, "y": 0.85},
@@ -518,15 +518,15 @@ class SettingsScreen(Screen):
         details_layout.add_widget(Label(text=f"Email: {email}", font_size=18, color=(1, 1, 1, 1)))
         self.info_box.add_widget(details_layout)
 
-        self.layout.add_widget(Label(text="Settings",font_name="Orbitron", font_size=24, size_hint_y=None, height=50, color=(1, 1, 1, 1)))
+        self.layout.add_widget(Label(text="Setari",font_name="Orbitron", font_size=24, size_hint_y=None, height=50, color=(1, 1, 1, 1)))
         self.layout.add_widget(self.info_box)
 
         
-        choose_button = Button(text="Choose Profile Image",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
+        choose_button = Button(text="Alege imaginea de profil",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
                                background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         choose_button.bind(on_press=self.choose_profile_picture)
 
-        remove_button = Button(text="Delete Profile Image",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
+        remove_button = Button(text="Sterge imaginea de profil",font_name="Orbitron", size_hint=(None, None), width=200, height=50,
                                background_normal="", background_color=(0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
         remove_button.bind(on_press=self.remove_profile_picture)
 
@@ -630,11 +630,11 @@ class NavigateScreen(Screen):
     size=(480, 60),  
     pos_hint={"center_x": 0.5, "top": 0.98},  
     spacing=15)
-            progress_btn = Button(text = "Progress", size_hint=(0.2, 0.1),size=(300, 150),font_name="Orbitron", width =150, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            progress_btn = Button(text = "Progresul", size_hint=(0.2, 0.1),size=(300, 150),font_name="Orbitron", width =150, height=50, background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             progress_btn.bind(on_press=lambda x: show_progress_kivy())
             leaderboard_btn = Button(text = "LeaderBoard", size_hint=(0.2, 0.1),size=(300, 150), width=150,font_name="Orbitron", height=50,  background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             leaderboard_btn.bind(on_press=lambda x: show_leaderboard())
-            profile_btn = Button(text= "Profile", size_hint=(0.2, 0.1),size=(300, 150), width=150, height=50,font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
+            profile_btn = Button(text= "Profilul tau", size_hint=(0.2, 0.1),size=(300, 150), width=150, height=50,font_name="Orbitron", background_normal="", background_color= (0.6, 0.2, 0.8, 1), color=(1, 1, 1, 1))
             profile_btn.bind(on_press=lambda x: open_profile_popup())
             top_buttons.add_widget(progress_btn)
             top_buttons.add_widget(leaderboard_btn)
@@ -790,7 +790,7 @@ class OptionsScreen(Screen):
             self.bg_rect = Rectangle(size=self.main_layout.size, pos=self.main_layout.pos)
         LabelBase.register(name="Orbitron", fn_regular="fonts/Orbitron-Regular.ttf")
         self.main_layout.bind(size=self.update_bg, pos=self.update_bg)
-        title = Label(text=f"Options for {planet_name}", font_size=24, size_hint=(1, None), height=60,font_name="Orbitron")
+        title = Label(text=f"Optiuni pentru {planet_name}", font_size=24, size_hint=(1, None), height=60,font_name="Orbitron")
         self.main_layout.add_widget(title)
 
         # Scrollable grid for exercise buttons
