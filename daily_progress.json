@@ -10,5 +10,9 @@
     "Friday": {
         "correct": 1,
         "time": 0
+    },
+    "Monday": {
+        "correct": 0,
+        "time": 0
     }
 }
