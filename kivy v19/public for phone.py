@@ -874,7 +874,7 @@ class OptionsScreen(Screen):
         question = questions_cpp1[i]
         code = code_cpp1[i]
         answers = answers_cpp1[i]
-        correct = answers[i]  
+        correct = correct_answers_cpp1[i]  
       elif self.planet_name == "Uranus" and self.selected_option == "C++":
           question = questions_cpp[i]
           answers = answers_cpp[i]
@@ -1123,6 +1123,15 @@ answers_cpp1 = [
     ["Linia 6", "Linia 2", "Linia 8", "Nicio eroare"],
     ["Linia 5", "Linia 2", "Linia 6", "Nicio eroare"],
     ["Linia 14", "Linia 2", "Linia 9", "Nicio eroare"]
+]
+correct_answers_cpp1 = [
+    "Linia 5",
+    "Linia 5",
+    "E bun, dar poate fi imbunatatit",
+    "Linia 5",
+    "Linia 6",
+    "Linia 6",
+    "Linia 14"
 ]
 questions_python_c = [
     "În ce linie apare eroarea de indentare?",
